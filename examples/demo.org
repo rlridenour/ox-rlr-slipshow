@@ -1,0 +1,86 @@
+#+TITLE: Prime Numbers
+#+AUTHOR: Randy Ridenour
+#+DATE: 2026-07-30
+#+OPTIONS: toc:nil
+#+SLIPSHOW_THEME: vanier
+#+SLIPSHOW_DIMENSION: 16:9
+
+* What is a prime number?
+:PROPERTIES:
+:ATTR_SLIPSHOW: #intro
+:END:
+
+Some motivating text before the definition.
+
+#+SLIPSHOW: pause
+
+#+ATTR_SLIPSHOW: .definition title="Prime number"
+A *prime number* is an integer divisible by exactly two integers: 1, and
+itself.
+
+Literal braces like {this one} must survive the trip intact.
+
+** A nested heading
+
+Inline math $e^{i\pi} = -1$, and display math:
+
+\[ \left( \sum_{k=1}^n a_k b_k \right)^2 < \Phi \]
+
+* Properties
+
+#+ATTR_SLIPSHOW: pause-children
+- Every integer greater than 1 has a prime factor.
+- There are infinitely many primes.
+- Primes thin out, but they never stop.
+- See [[https://oeis.org/A000040][OEIS A000040]] for the sequence itself.
+
+#+ATTR_SLIPSHOW: title="Euclid"
+#+begin_theorem
+There are infinitely many prime numbers.
+#+end_theorem
+
+#+begin_proof
+Suppose there were finitely many. Multiply them all together and add one.
+#+end_proof
+
+* Code and quotations
+
+#+ATTR_SLIPSHOW: pause
+#+begin_src ocaml
+let rec fact n = if n <= 1 then 1 else n * fact (n - 1)
+#+end_src
+
+#+begin_quote
+Mathematics is the queen of the sciences, and number theory is the queen
+of mathematics.
+#+end_quote
+
+* Layout
+
+#+begin_columns
+#+begin_group
+*Left column*
+
+Text on the left.
+#+end_group
+
+#+begin_group
+*Right column*
+
+Text on the right.
+#+end_group
+#+end_columns
+
+-----
+
+After the horizontal rule. @@slipshow:{pause}@@
+
+An emphasised aside follows.
+
+* Data
+
+| Prime | Index |
+|-------+-------|
+|     2 |     1 |
+|     3 |     2 |
+|     5 |     3 |

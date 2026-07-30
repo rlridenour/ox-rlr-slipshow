@@ -1,0 +1,91 @@
+---
+theme: vanier
+dimension: 16:9
+---
+
+{slip .title-slip}
+-----
+# Prime Numbers
+
+Randy Ridenour
+
+2026-07-30
+
+
+{slip #intro}
+-----
+# What is a prime number?
+
+Some motivating text before the definition.
+
+{pause}
+
+{.definition title="Prime number"}
+A **prime number** is an integer divisible by exactly two integers: 1, and
+itself.
+
+Literal braces like \{this one\} must survive the trip intact.
+
+## A nested heading
+
+Inline math $e^{i\pi} = -1$, and display math:
+
+$$\left( \sum_{k=1}^n a_k b_k \right)^2 < \Phi$$
+
+{slip}
+-----
+# Properties
+
+-   Every integer greater than 1 has a prime factor.
+-   [There are infinitely many primes.]{pause}
+-   [Primes thin out, but they never stop.]{pause}
+-   [See [OEIS A000040](https://oeis.org/A000040) for the sequence itself.]{pause}
+
+{.theorem title="Euclid"}
+> There are infinitely many prime numbers.
+
+{.proof}
+> Suppose there were finitely many. Multiply them all together and add one.
+
+{slip}
+-----
+# Code and quotations
+
+{pause}
+```ocaml
+let rec fact n = if n <= 1 then 1 else n * fact (n - 1)
+```
+
+{blockquote}
+> Mathematics is the queen of the sciences, and number theory is the queen
+> of mathematics.
+
+{slip}
+-----
+# Layout
+
+{.columns}
+> > **Left column**
+> >
+> > Text on the left.
+>
+> > **Right column**
+> >
+> > Text on the right.
+
+<hr>
+
+After the horizontal rule. {pause}
+
+An emphasised aside follows.
+
+{slip}
+-----
+# Data
+
+| Prime | Index |
+| ---: | ---: |
+| 2 | 1 |
+| 3 | 2 |
+| 5 | 3 |
+
