@@ -109,6 +109,25 @@ Either \"WIDTHxHEIGHT\" such as \"1920x1080\", or a ratio such as
   :type '(choice (const :tag "Slipshow default" nil) string)
   :group 'org-export-rlr-slipshow)
 
+(defcustom org-rlr-slipshow-columns-style "display:flex; gap:2em"
+  "Inline CSS applied to a #+begin_columns block, or nil for none.
+
+Slipshow has no built-in column layout: the `columns' class in its
+documentation is illustrative, and the reader is expected to supply
+flexbox CSS.  This back-end supplies it so that #+begin_columns works
+without a separate stylesheet.  Set to nil to emit a bare class and
+style it yourself, and note that an explicit style= in #+ATTR_SLIPSHOW:
+already takes precedence over this value."
+  :type '(choice (const :tag "No inline styling" nil) string)
+  :group 'org-export-rlr-slipshow)
+
+(defcustom org-rlr-slipshow-column-style "flex:1"
+  "Inline CSS applied to each direct child of a columns block, or nil.
+Distributed to the children with Slipshow's `children:' mechanism, so
+the columns share the available width evenly however many there are."
+  :type '(choice (const :tag "No inline styling" nil) string)
+  :group 'org-export-rlr-slipshow)
+
 (defcustom org-rlr-slipshow-extension ".slp"
   "File extension used for exported Slipshow source files."
   :type 'string
@@ -456,16 +475,35 @@ attribute is required."
             "blockquote" (org-rlr-slipshow--element-attrs quote-block)))
           (org-rlr-slipshow--gt-group contents)))
 
+(defun org-rlr-slipshow--assigns-p (attrs key)
+  "Return non-nil when ATTRS already assigns KEY.
+Matching is anchored so that `style' does not match `children:style'."
+  (and attrs
+       (string-match-p (concat "\\(?:\\`\\|[ \t]\\)" (regexp-quote key) "=")
+                       attrs)))
+
 (defun org-rlr-slipshow--block-attrs (type user)
   "Return the attribute string for a special block of TYPE with USER attributes."
   (let ((type (downcase type)))
-    (org-rlr-slipshow--join-attrs
-     (cond
-      ((member type org-rlr-slipshow--element-types) type)
-      ((member type org-rlr-slipshow--box-types) (concat "." type))
-      ((string= type "group") nil)
-      (t (concat "." type)))
-     user)))
+    (cond
+     ;; Columns need flexbox to lay out at all, so supply it unless the
+     ;; user has said otherwise.  Any `columns-3'-style name works too.
+     ((string-prefix-p "columns" type)
+      (org-rlr-slipshow--join-attrs
+       (concat "." type)
+       (and org-rlr-slipshow-columns-style
+            (not (org-rlr-slipshow--assigns-p user "style"))
+            (format "style=\"%s\"" org-rlr-slipshow-columns-style))
+       (and org-rlr-slipshow-column-style
+            (not (org-rlr-slipshow--assigns-p user "children:style"))
+            (format "children:style=\"%s\"" org-rlr-slipshow-column-style))
+       user))
+     ((member type org-rlr-slipshow--element-types)
+      (org-rlr-slipshow--join-attrs type user))
+     ((member type org-rlr-slipshow--box-types)
+      (org-rlr-slipshow--join-attrs (concat "." type) user))
+     ((string= type "group") (org-rlr-slipshow--join-attrs user))
+     (t (org-rlr-slipshow--join-attrs (concat "." type) user)))))
 
 (defun org-rlr-slipshow-special-block (special-block contents _info)
   "Transcode SPECIAL-BLOCK with CONTENTS into an attributed Slipshow group.

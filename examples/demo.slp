@@ -64,7 +64,7 @@ let rec fact n = if n <= 1 then 1 else n * fact (n - 1)
 -----
 # Layout
 
-{.columns}
+{.columns style="display:flex; gap:2em" children:style="flex:1"}
 > > **Left column**
 > >
 > > Text on the left.

@@ -139,6 +139,26 @@ Columns are groups nested inside a `columns` block:
 #+end_columns
 ```
 
+Slipshow has **no built-in column layout** — the `columns` class in its
+documentation is illustrative, and the reader is expected to supply flexbox
+CSS. So this back-end supplies it, emitting
+
+```markdown
+{.columns style="display:flex; gap:2em" children:style="flex:1"}
+```
+
+which lays the columns out evenly however many there are. `#+begin_columns-3`
+and similar names work the same way. To take over the styling yourself, either
+set `org-rlr-slipshow-columns-style` and `org-rlr-slipshow-column-style` to
+`nil`, or just give the block your own `style=`, which takes precedence:
+
+```org
+#+ATTR_SLIPSHOW: style="display:grid; grid-template-columns:2fr 1fr"
+#+begin_columns
+...
+#+end_columns
+```
+
 ## Progressive lists
 
 Off by default. Enable per list:
