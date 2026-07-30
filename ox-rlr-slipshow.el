@@ -665,7 +665,11 @@ is synthesised for tables that have no header."
         (?o "As HTML file and open" org-rlr-slipshow-export-to-html-and-open)
         (?s "Serve with live reload" org-rlr-slipshow-serve)))
   :options-alist
-  '((:slipshow-structure "SLIPSHOW_STRUCTURE" nil nil t)
+  ;; A Markdown table of contents lands before the first slip separator,
+  ;; where it renders as stray content in the top-level slip, so it is off
+  ;; by default here.  Re-enable per file with `#+OPTIONS: toc:t'.
+  '((:with-toc nil "toc" nil)
+    (:slipshow-structure "SLIPSHOW_STRUCTURE" nil nil t)
     (:slipshow-slip-level "SLIPSHOW_SLIP_LEVEL" nil nil t)
     (:slipshow-theme "SLIPSHOW_THEME" nil nil t)
     (:slipshow-dimension "SLIPSHOW_DIMENSION" nil nil t)
@@ -704,24 +708,26 @@ is synthesised for tables that have no header."
 
 ;;;###autoload
 (defun org-rlr-slipshow-export-as-slipshow
-    (&optional async subtreep visible-only)
+    (&optional async subtreep visible-only body-only)
   "Export current buffer to a Slipshow buffer.
-ASYNC, SUBTREEP and VISIBLE-ONLY behave as in other Org exporters."
+ASYNC, SUBTREEP, VISIBLE-ONLY and BODY-ONLY behave as in other Org
+exporters.  BODY-ONLY omits the frontmatter and title slip, which is
+what you want for a file destined to be pulled in with `{include}'."
   (interactive)
   (org-export-to-buffer 'rlr-slipshow "*Org Slipshow Export*"
-    async subtreep visible-only nil nil
+    async subtreep visible-only body-only nil
     (lambda () (when (fboundp 'markdown-mode) (markdown-mode)))))
 
 ;;;###autoload
 (defun org-rlr-slipshow-export-to-slipshow
-    (&optional async subtreep visible-only)
+    (&optional async subtreep visible-only body-only)
   "Export current buffer to a Slipshow source file.
-ASYNC, SUBTREEP and VISIBLE-ONLY behave as in other Org exporters.
-Return the name of the file written."
+ASYNC, SUBTREEP, VISIBLE-ONLY and BODY-ONLY behave as in other Org
+exporters.  Return the name of the file written."
   (interactive)
   (let ((file (org-export-output-file-name
                org-rlr-slipshow-extension subtreep)))
-    (org-export-to-file 'rlr-slipshow file async subtreep visible-only)))
+    (org-export-to-file 'rlr-slipshow file async subtreep visible-only body-only)))
 
 (defun org-rlr-slipshow--run (command source &rest args)
   "Run Slipshow COMMAND on SOURCE with ARGS in a dedicated buffer.
@@ -738,12 +744,14 @@ Return the process buffer."
     buffer))
 
 ;;;###autoload
-(defun org-rlr-slipshow-export-to-html (&optional async subtreep visible-only)
+(defun org-rlr-slipshow-export-to-html
+    (&optional async subtreep visible-only body-only)
   "Export current buffer to Slipshow source, then compile it to HTML.
-ASYNC, SUBTREEP and VISIBLE-ONLY behave as in other Org exporters.
-Return the name of the HTML file that will be produced."
+ASYNC, SUBTREEP, VISIBLE-ONLY and BODY-ONLY behave as in other Org
+exporters.  Return the name of the HTML file that will be produced."
   (interactive)
-  (let* ((source (org-rlr-slipshow-export-to-slipshow async subtreep visible-only))
+  (let* ((source (org-rlr-slipshow-export-to-slipshow
+                  async subtreep visible-only body-only))
          (html (concat (file-name-sans-extension source) ".html")))
     (org-rlr-slipshow--run "compile" source "-o" (file-name-nondirectory html))
     (message "Compiling %s with Slipshow..." (file-name-nondirectory source))
@@ -751,11 +759,13 @@ Return the name of the HTML file that will be produced."
 
 ;;;###autoload
 (defun org-rlr-slipshow-export-to-html-and-open
-    (&optional async subtreep visible-only)
+    (&optional async subtreep visible-only body-only)
   "Export to HTML with Slipshow and open the result in a browser.
-ASYNC, SUBTREEP and VISIBLE-ONLY behave as in other Org exporters."
+ASYNC, SUBTREEP, VISIBLE-ONLY and BODY-ONLY behave as in other Org
+exporters."
   (interactive)
-  (let ((html (org-rlr-slipshow-export-to-html async subtreep visible-only))
+  (let ((html (org-rlr-slipshow-export-to-html
+               async subtreep visible-only body-only))
         (process (get-buffer-process (get-buffer "*Slipshow*"))))
     (if (not process)
         (browse-url-of-file html)
@@ -768,14 +778,17 @@ ASYNC, SUBTREEP and VISIBLE-ONLY behave as in other Org exporters."
     html))
 
 ;;;###autoload
-(defun org-rlr-slipshow-serve (&optional async subtreep visible-only)
+(defun org-rlr-slipshow-serve
+    (&optional async subtreep visible-only body-only)
   "Export the current buffer and serve it with live reload.
-ASYNC, SUBTREEP and VISIBLE-ONLY behave as in other Org exporters.
+ASYNC, SUBTREEP, VISIBLE-ONLY and BODY-ONLY behave as in other Org
+exporters.
 
 Slipshow watches the exported source file, not the Org buffer, so
 re-export to refresh the presentation."
   (interactive)
-  (let ((source (org-rlr-slipshow-export-to-slipshow async subtreep visible-only)))
+  (let ((source (org-rlr-slipshow-export-to-slipshow
+                 async subtreep visible-only body-only)))
     (org-rlr-slipshow--run "serve" source
                            "--port" (number-to-string org-rlr-slipshow-serve-port))
     (message "Serving %s on http://localhost:%d"

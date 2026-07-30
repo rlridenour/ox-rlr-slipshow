@@ -52,6 +52,10 @@ From the Org export dispatcher (`C-c C-e`), press `y`:
 | `o` | Export, compile, and open in a browser |
 | `s` | Export and `slipshow serve` with live reload |
 
+Org's table of contents is **off by default** here: a Markdown TOC is emitted
+before the first slip separator, where it renders as stray content in the
+top-level slip. Re-enable it per file with `#+OPTIONS: toc:t`.
+
 ## Document structure
 
 `org-rlr-slipshow-structure` (or `#+SLIPSHOW_STRUCTURE:` per file) picks how
@@ -218,6 +222,18 @@ emacs --batch -L . --eval '(progn (require (quote ox-rlr-slipshow)) \
   (org-export-to-file (quote rlr-slipshow) (expand-file-name "examples/demo.slp")))'
 slipshow compile examples/demo.slp -o examples/demo.html
 ```
+
+## Tests
+
+```sh
+emacs --batch -L . -l test/ox-rlr-slipshow-test.el -f ert-run-tests-batch-and-exit
+```
+
+The suite covers Slipshow's divergences from CommonMark (brace escaping,
+`{blockquote}`, `<hr>`, math delimiters), the three structure modes, all four
+attribute mechanisms, and — importantly — that each export command accepts the
+four arguments `org-export-dispatch` passes it. Testing `org-export-to-file`
+directly does not exercise that path.
 
 ## License
 
