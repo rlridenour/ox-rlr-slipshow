@@ -17,6 +17,14 @@ BODY-ONLY is passed through to `org-export-as'."
     (org-mode)
     (org-export-as 'rlr-slipshow nil nil body-only)))
 
+(defun ox-rlr-slipshow-test--count (needle haystack)
+  "Return the number of times literal NEEDLE occurs in HAYSTACK."
+  (let ((start 0) (n 0))
+    (while (string-match (regexp-quote needle) haystack start)
+      (setq n (1+ n)
+            start (match-end 0)))
+    n))
+
 
 ;;; Export dispatcher contract
 
@@ -139,6 +147,98 @@ invoked through the dispatcher, which is easy to miss when testing
                       "#+begin_columns\nLeft\n#+end_columns\n"))))
     (should (string-match-p "display:grid" out))
     (should-not (string-match-p "display:flex" out))))
+
+
+;;; Speaker notes
+
+(defconst ox-rlr-slipshow-test--notes-slip
+  "#+OPTIONS: title:nil\n\n* One\n\n#+begin_notes\nRemember the funding.\n#+end_notes\n\nBody.\n")
+
+(ert-deftest ox-rlr-slipshow-notes-ride-on-the-enclosing-slip ()
+  "Every action attribute costs a step, so a bare `{speaker-note}' costs a
+keypress per slip.  Referencing the note from the slip folds it into the
+step that enters the slip instead."
+  (let ((out (ox-rlr-slipshow-test--export ox-rlr-slipshow-test--notes-slip)))
+    (should (string-match-p "{slip speaker-note=[^ }]+}" out))
+    (should-not (string-match-p "{speaker-note" out))))
+
+(ert-deftest ox-rlr-slipshow-notes-reference-resolves ()
+  "The slip and the note derive the identifier separately.
+Slipshow warns about a dangling reference rather than failing, so a
+mismatch would compile cleanly and silently lose the note."
+  (let ((out (ox-rlr-slipshow-test--export ox-rlr-slipshow-test--notes-slip)))
+    (should (string-match "speaker-note=\\([^ }]+\\)" out))
+    (let ((id (match-string 1 out)))
+      (should (string-match-p (regexp-quote (concat "{#" id "}")) out)))))
+
+(ert-deftest ox-rlr-slipshow-notes-are-grouped ()
+  "A note is a `>' group, so multi-paragraph notes stay one element."
+  (let ((out (ox-rlr-slipshow-test--export ox-rlr-slipshow-test--notes-slip)))
+    (should (string-match-p "^> Remember the funding\\.$" out))))
+
+(ert-deftest ox-rlr-slipshow-notes-with-attributes-stay-inline ()
+  "Attributes on the block mean the author wants a step of their own."
+  (let ((out (ox-rlr-slipshow-test--export
+              (concat "#+OPTIONS: title:nil\n\n* One\n\n"
+                      "#+ATTR_SLIPSHOW: pause\n#+begin_notes\nLater.\n#+end_notes\n"))))
+    (should (string-match-p "{speaker-note pause}" out))
+    (should-not (string-match-p "speaker-note=" out))))
+
+(ert-deftest ox-rlr-slipshow-only-one-note-rides-per-slip ()
+  "A repeated `speaker-note' attribute would collide on one element."
+  (let ((out (ox-rlr-slipshow-test--export
+              (concat "#+OPTIONS: title:nil\n\n* One\n\n"
+                      "#+begin_notes\nFirst.\n#+end_notes\n\n"
+                      "#+begin_notes\nSecond.\n#+end_notes\n"))))
+    (should (string-match-p "{slip speaker-note=[^ }]+}" out))
+    (should (string-match-p "{speaker-note}" out))
+    ;; Exactly one note is hoisted; the other is left where it stands.
+    (should (= 1 (ox-rlr-slipshow-test--count "speaker-note=" out)))))
+
+(ert-deftest ox-rlr-slipshow-notes-do-not-revive-the-empty-leading-slide ()
+  "Slide mode suppresses the separator before the first group.
+Hoisting a note onto it would force the separator back and manufacture
+the empty leading slide that suppression exists to prevent, so the
+first slide's note stays inline."
+  (let* ((out (ox-rlr-slipshow-test--export
+               (concat "#+SLIPSHOW_STRUCTURE: slide\n#+OPTIONS: title:nil\n\n"
+                       "* One\n#+begin_notes\nNote.\n#+end_notes\nBody.\n\n"
+                       "* Two\nBody two.\n")))
+         (close (string-match "\n---\n" out))
+         (body (string-trim (substring out (+ close 5)))))
+    (should (string-prefix-p "# One" body))
+    (should (string-match-p "{speaker-note}" out))
+    (should-not (string-match-p "speaker-note=" out))))
+
+(ert-deftest ox-rlr-slipshow-slide-mode-notes-ride-on-the-slide ()
+  "Every slide but a suppressed first one can carry the reference."
+  (let ((out (ox-rlr-slipshow-test--export
+              (concat "#+SLIPSHOW_STRUCTURE: slide\n#+OPTIONS: title:nil\n\n"
+                      "* One\nBody.\n\n"
+                      "* Two\n#+begin_notes\nNote.\n#+end_notes\nBody two.\n"))))
+    (should (string-match-p "{speaker-note=[^ }]+}" out))
+    (should-not (string-match-p "{speaker-note}" out))))
+
+(ert-deftest ox-rlr-slipshow-notes-can-be-dropped ()
+  (let ((out (ox-rlr-slipshow-test--export
+              (concat "#+OPTIONS: title:nil notes:nil\n\n* One\n\n"
+                      "#+begin_notes\nSecret.\n#+end_notes\n\nBody.\n"))))
+    (should-not (string-match-p "Secret" out))
+    (should-not (string-match-p "speaker-note" out))
+    (should (string-match-p "Body\\." out))))
+
+(ert-deftest ox-rlr-slipshow-flat-mode-notes-are-inline ()
+  "Flat mode has no slip to hang the reference on."
+  (let ((out (ox-rlr-slipshow-test--export
+              (concat "#+SLIPSHOW_STRUCTURE: flat\n#+OPTIONS: title:nil\n\n* One\n\n"
+                      "#+begin_notes\nInline.\n#+end_notes\n"))))
+    (should (string-match-p "{speaker-note}" out))
+    (should-not (string-match-p "speaker-note=" out))))
+
+(ert-deftest ox-rlr-slipshow-notes-block-is-not-a-class ()
+  "The fallback for an unknown block name would emit `{.notes}'."
+  (let ((out (ox-rlr-slipshow-test--export ox-rlr-slipshow-test--notes-slip)))
+    (should-not (string-match-p (regexp-quote "{.notes}") out))))
 
 
 ;;; Tables

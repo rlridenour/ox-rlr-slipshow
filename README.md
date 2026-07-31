@@ -127,6 +127,7 @@ the attribute:
 | `#+begin_theorem` (also `definition`, `proof`, `lemma`, `example`, `remark`, `corollary`, `block`) | `{.theorem}` |
 | `#+begin_slip`, `#+begin_slide`, `#+begin_carousel`, `#+begin_blockquote` | `{slip}` |
 | `#+begin_group` | a bare `>` group |
+| `#+begin_notes` (also `note`, `speaker_note`, `speaker_notes`) | a speaker note — see below |
 | `#+begin_anything_else` | `{.anything_else}` |
 
 Columns are groups nested inside a `columns` block:
@@ -182,6 +183,76 @@ Each item is emitted as `[item text]{pause}`. The bracket grouping matters: a
 bare trailing `{pause}` binds only to the inline element it touches, which on a
 multi-word item would pause the last word alone.
 
+## Speaker notes
+
+Slipshow has a speaker view, opened by pressing `s` during a presentation.
+Write notes for it with `#+begin_notes`, the same block name Org's Beamer and
+Reveal back-ends use:
+
+```org
+* What is a prime number?
+
+#+begin_notes
+Open by asking who remembers the sieve of Eratosthenes.
+
+Do *not* get drawn into the twin prime conjecture here.
+#+end_notes
+
+Some motivating text.
+```
+
+Notes are hidden from the presentation itself, and the block body is exported
+normally, so lists, math and emphasis all work inside one.
+
+### Notes cost a step, unless they ride on a slip
+
+Slipshow treats **every** action attribute as a step, and `speaker-note` is an
+action. So the obvious translation — a `{speaker-note}` group sitting where you
+wrote it — adds a keypress to the deck for every note you write.
+
+This back-end avoids that. A section's first notes block is emitted as a plain
+identified group, and the `speaker-note` attribute that points at it rides on
+the enclosing slip:
+
+```markdown
+{slip speaker-note=org-slipshow-note-209}
+-----
+# What is a prime number?
+
+{#org-slipshow-note-209}
+> Open by asking who remembers the sieve of Eratosthenes.
+```
+
+The slip already spends a step being entered, and an element's actions all fire
+together, so the note arrives as you reach the slip and costs nothing extra.
+
+A note is left where you wrote it — taking its own step — when it can't ride
+along:
+
+- It isn't the first notes block in its section. Only one `speaker-note`
+  attribute fits on an element, and a note that changes partway through a slip
+  wants its own step anyway.
+- It carries its own `#+ATTR_SLIPSHOW:` line. Attributes are how you ask for a
+  step, so `#+ATTR_SLIPSHOW: pause` is the way to force this deliberately.
+- The structure mode is `flat`, which has no slip to hang the reference on.
+- It is on the first slide of a `slide`-mode deck that has no title. That
+  separator is suppressed to avoid an empty leading slide, which leaves nothing
+  to attach to.
+
+Set `org-rlr-slipshow-notes-attach` to `nil` to switch this off and always emit
+notes inline.
+
+### Leaving notes out
+
+Notes are hidden in the presentation but still readable in the generated `.slp`
+and HTML. To drop them entirely:
+
+```org
+#+OPTIONS: notes:nil
+```
+
+or set `org-rlr-slipshow-with-notes` to `nil`.
+
 ## Frontmatter
 
 | Org keyword | Frontmatter key |
@@ -211,6 +282,8 @@ is synthesised for tables that have no header, since GFM requires one.
   `pause-children` on the list, or an inline `@@slipshow:...@@` snippet.
 - Org's `[[link][description]]` inside a paused list item works, but item text
   containing an unbalanced `]` may confuse the `[...]{pause}` wrapper.
+- A `{pause}` or other action **inside** a notes block still consumes a step,
+  even though the note it lives in is hidden.
 
 ## Example
 
@@ -231,9 +304,9 @@ emacs --batch -L . -l test/ox-rlr-slipshow-test.el -f ert-run-tests-batch-and-ex
 
 The suite covers Slipshow's divergences from CommonMark (brace escaping,
 `{blockquote}`, `<hr>`, math delimiters), the three structure modes, all four
-attribute mechanisms, and — importantly — that each export command accepts the
-four arguments `org-export-dispatch` passes it. Testing `org-export-to-file`
-directly does not exercise that path.
+attribute mechanisms, speaker notes, and — importantly — that each export
+command accepts the four arguments `org-export-dispatch` passes it. Testing
+`org-export-to-file` directly does not exercise that path.
 
 ## License
 

@@ -12,9 +12,15 @@ Randy Ridenour
 2026-07-30
 
 
-{slip #intro}
+{slip #intro speaker-note=org-slipshow-note-209}
 -----
 # What is a prime number?
+
+{#org-slipshow-note-209}
+> Open by asking who remembers the sieve of Eratosthenes.
+>
+> Do **not** get drawn into the twin prime conjecture here &mdash; it comes up
+> again on the last slip.
 
 Some motivating text before the definition.
 
@@ -46,6 +52,10 @@ $$\left( \sum_{k=1}^n a_k b_k \right)^2 < \Phi$$
 
 {.proof}
 > Suppose there were finitely many. Multiply them all together and add one.
+
+{speaker-note pause}
+> A second note in one section takes a step of its own, so the note can
+> change partway through. Give them a moment with the proof first.
 
 {slip}
 -----

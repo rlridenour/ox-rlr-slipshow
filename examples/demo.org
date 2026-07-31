@@ -10,6 +10,13 @@
 :ATTR_SLIPSHOW: #intro
 :END:
 
+#+begin_notes
+Open by asking who remembers the sieve of Eratosthenes.
+
+Do *not* get drawn into the twin prime conjecture here --- it comes up
+again on the last slip.
+#+end_notes
+
 Some motivating text before the definition.
 
 #+SLIPSHOW: pause
@@ -42,6 +49,12 @@ There are infinitely many prime numbers.
 #+begin_proof
 Suppose there were finitely many. Multiply them all together and add one.
 #+end_proof
+
+#+ATTR_SLIPSHOW: pause
+#+begin_notes
+A second note in one section takes a step of its own, so the note can
+change partway through. Give them a moment with the proof first.
+#+end_notes
 
 * Code and quotations
 

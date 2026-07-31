@@ -96,6 +96,29 @@ its own step, matching the behaviour of Beamer's \\pause."
   :type 'boolean
   :group 'org-export-rlr-slipshow)
 
+(defcustom org-rlr-slipshow-with-notes t
+  "When non-nil, #+begin_notes blocks are exported as speaker notes.
+Set to nil, or use
+
+  #+OPTIONS: notes:nil
+
+to drop them from the output entirely.  Slipshow hides notes from the
+presentation either way, but they remain readable in the generated
+source, so dropping them matters when sharing the file."
+  :type 'boolean
+  :group 'org-export-rlr-slipshow)
+
+(defcustom org-rlr-slipshow-notes-attach t
+  "When non-nil, attach a section's first notes block to its own slip.
+
+Slipshow counts every action attribute as a step, so a standalone
+`{speaker-note}' costs a keypress.  Referencing the note from the
+enclosing slip instead makes it appear as the slip is entered, folded
+into the step that enters it.  Set to nil to always emit notes inline,
+each on its own step."
+  :type 'boolean
+  :group 'org-export-rlr-slipshow)
+
 (defcustom org-rlr-slipshow-theme nil
   "Default Slipshow theme, or nil to let Slipshow decide.
 Either a theme name such as \"vanier\" or a path to a CSS file."
@@ -166,6 +189,11 @@ These are emitted as classes, so #+begin_theorem becomes `{.theorem}'.")
   '("slip" "slide" "carousel" "blockquote")
   "Special block names that Slipshow renders as flag attributes.
 These are emitted bare, so #+begin_slip becomes `{slip}'.")
+
+(defconst org-rlr-slipshow--notes-types
+  '("notes" "note" "speaker_note" "speaker_notes")
+  "Special block names that become speaker notes.
+`notes' is the spelling Org's Beamer and Reveal back-ends use.")
 
 ;; Let @@slipshow:...@@ and @@slp:...@@ reach this back-end, in addition
 ;; to the literal @@rlr-slipshow:...@@ that Org would match on its own.
@@ -284,6 +312,88 @@ preamble precede it, so that nothing has been emitted yet."
                 candidate))
          info t))))
 
+;;; Speaker notes
+
+(defun org-rlr-slipshow--notes-block-p (element)
+  "Return non-nil when ELEMENT is a speaker-notes special block."
+  (and (eq (org-element-type element) 'special-block)
+       (member (downcase (or (org-element-property :type element) ""))
+               org-rlr-slipshow--notes-types)))
+
+(defun org-rlr-slipshow--note-id (block)
+  "Return the identifier used to reference notes BLOCK.
+Derived from the block's own buffer position, so that the headline and
+the block agree on it without having to share any state."
+  (format "org-slipshow-note-%d" (org-element-property :begin block)))
+
+(defun org-rlr-slipshow--attributable-p (headline info)
+  "Return non-nil when HEADLINE emits a group that can carry attributes.
+INFO is the current export plist.
+
+In slide mode the separator before the first group is suppressed, since
+`children:slide' would turn it into an empty leading slide.  That
+headline has nothing to hang an attribute on unless the author has
+already forced a separator by giving it attributes of their own."
+  (not (and (eq (org-rlr-slipshow--structure info) 'slide)
+            (null (org-rlr-slipshow--headline-attrs headline))
+            (org-rlr-slipshow--first-group-p headline info))))
+
+(defun org-rlr-slipshow--note-host (block info)
+  "Return the headline whose group should carry notes BLOCK, or nil.
+INFO is the current export plist.  The host is the nearest ancestor
+headline that becomes a group able to carry attributes; in flat mode
+there is none, and the note is emitted inline instead."
+  (let ((structure (org-rlr-slipshow--structure info))
+        (slip-level (org-rlr-slipshow--slip-level info)))
+    (when (memq structure '(slip slide))
+      (let ((headline (org-element-lineage block '(headline)))
+            (host nil))
+        (while (and headline (not host))
+          (let ((level (org-export-get-relative-level headline info)))
+            (if (or (= level slip-level)
+                    (and (> level slip-level)
+                         (eq structure 'slip)
+                         org-rlr-slipshow-nest-subslips))
+                (setq host headline)
+              (setq headline (org-element-lineage headline '(headline))))))
+        (and host
+             (org-rlr-slipshow--attributable-p host info)
+             host)))))
+
+(defun org-rlr-slipshow--attached-note (headline info)
+  "Return the notes block HEADLINE's group should reference, or nil.
+INFO is the current export plist.
+
+Only one note can ride on a group, since a repeated `speaker-note'
+attribute would collide, so this is the first block in the subtree that
+names HEADLINE as its host.  A block carrying its own
+#+ATTR_SLIPSHOW: line is left alone: the attributes are there to give
+it a step of its own."
+  (and org-rlr-slipshow-notes-attach
+       (org-element-map (org-element-contents headline) 'special-block
+         (lambda (block)
+           (and (org-rlr-slipshow--notes-block-p block)
+                (not (org-rlr-slipshow--element-attrs block))
+                (eq (org-rlr-slipshow--note-host block info) headline)
+                block))
+         info t)))
+
+(defun org-rlr-slipshow--note-attached-p (block info)
+  "Return non-nil when notes BLOCK rides on its enclosing group.
+INFO is the current export plist.  Decided through
+`org-rlr-slipshow--attached-note' so that the block and the headline
+cannot disagree."
+  (let ((host (org-rlr-slipshow--note-host block info)))
+    (and host (eq block (org-rlr-slipshow--attached-note host info)))))
+
+(defun org-rlr-slipshow--note-reference (headline info)
+  "Return the `speaker-note=ID' attribute for HEADLINE, or nil.
+INFO is the current export plist."
+  (when (plist-get info :slipshow-with-notes)
+    (let ((note (org-rlr-slipshow--attached-note headline info)))
+      (when note
+        (format "speaker-note=%s" (org-rlr-slipshow--note-id note))))))
+
 (defun org-rlr-slipshow--separator (info)
   "Return the group separator appropriate to INFO's structure mode."
   (if (eq (org-rlr-slipshow--structure info) 'slide)
@@ -387,9 +497,10 @@ INFO is the current export plist."
        ;; A slip or slide: attributes ride on the separator, and apply to
        ;; the group that follows it.
        ((and (memq structure '(slip slide)) (= level slip-level))
-        (let* ((attrs (if (eq structure 'slide)
-                          user
-                        (org-rlr-slipshow--join-attrs "slip" user)))
+        (let* ((note (org-rlr-slipshow--note-reference headline info))
+               (attrs (if (eq structure 'slide)
+                          (org-rlr-slipshow--join-attrs user note)
+                        (org-rlr-slipshow--join-attrs "slip" user note)))
                ;; In slide mode `children:slide' makes every child of the
                ;; wrapper a slide, so a separator before the first one
                ;; would manufacture an empty leading slide.  Slip mode
@@ -408,7 +519,8 @@ INFO is the current export plist."
              org-rlr-slipshow-nest-subslips
              (> level slip-level))
         (concat (org-rlr-slipshow--attr-line
-                 (org-rlr-slipshow--join-attrs "slip" user))
+                 (org-rlr-slipshow--join-attrs
+                  "slip" user (org-rlr-slipshow--note-reference headline info)))
                 (org-rlr-slipshow--gt-group (concat heading "\n\n" body))))
        (t
         (concat (org-rlr-slipshow--attr-line user) heading "\n\n" body))))))
@@ -505,18 +617,43 @@ Matching is anchored so that `style' does not match `children:style'."
      ((string= type "group") (org-rlr-slipshow--join-attrs user))
      (t (org-rlr-slipshow--join-attrs (concat "." type) user)))))
 
-(defun org-rlr-slipshow-special-block (special-block contents _info)
+(defun org-rlr-slipshow-notes-block (block contents info)
+  "Transcode a speaker-notes BLOCK with CONTENTS.
+INFO is the current export plist.
+
+An attached note is emitted as a plain identified group; the
+`speaker-note' attribute that names it rides on the enclosing slip, so
+setting the note costs no step of its own.  Otherwise the attribute
+goes here, and Slipshow gives the note a step.  Either way the note is
+hidden from the presentation."
+  (cond
+   ((not (plist-get info :slipshow-with-notes)) "")
+   ((org-rlr-slipshow--note-attached-p block info)
+    (concat (org-rlr-slipshow--attr-line
+             (concat "#" (org-rlr-slipshow--note-id block)))
+            (org-rlr-slipshow--gt-group contents)))
+   (t
+    (concat (org-rlr-slipshow--attr-line
+             (org-rlr-slipshow--join-attrs
+              "speaker-note" (org-rlr-slipshow--element-attrs block)))
+            (org-rlr-slipshow--gt-group contents)))))
+
+(defun org-rlr-slipshow-special-block (special-block contents info)
   "Transcode SPECIAL-BLOCK with CONTENTS into an attributed Slipshow group.
+INFO is the current export plist.
 
 The block name becomes the attribute: #+begin_slip yields `{slip}',
 #+begin_theorem yields `{.theorem}', and #+begin_group yields a bare
 group.  Nesting groups inside a #+begin_columns block is how you get
-side-by-side columns."
-  (let ((attrs (org-rlr-slipshow--block-attrs
-                (org-element-property :type special-block)
-                (org-rlr-slipshow--element-attrs special-block))))
-    (concat (org-rlr-slipshow--attr-line attrs)
-            (org-rlr-slipshow--gt-group contents))))
+side-by-side columns.  #+begin_notes is special-cased into a speaker
+note."
+  (if (org-rlr-slipshow--notes-block-p special-block)
+      (org-rlr-slipshow-notes-block special-block contents info)
+    (let ((attrs (org-rlr-slipshow--block-attrs
+                  (org-element-property :type special-block)
+                  (org-rlr-slipshow--element-attrs special-block))))
+      (concat (org-rlr-slipshow--attr-line attrs)
+              (org-rlr-slipshow--gt-group contents)))))
 
 (defun org-rlr-slipshow-center-block (center-block contents _info)
   "Transcode CENTER-BLOCK with CONTENTS into a centred Slipshow group."
@@ -679,7 +816,8 @@ is synthesised for tables that have no header."
     (:slipshow-attributes "SLIPSHOW_ATTRIBUTES" nil nil t)
     (:slipshow-toplevel-attributes "SLIPSHOW_TOPLEVEL_ATTRIBUTES" nil nil t)
     (:slipshow-external-ids "SLIPSHOW_EXTERNAL_IDS" nil nil space)
-    (:slipshow-pause-lists nil "pause-lists" org-rlr-slipshow-pause-lists))
+    (:slipshow-pause-lists nil "pause-lists" org-rlr-slipshow-pause-lists)
+    (:slipshow-with-notes nil "notes" org-rlr-slipshow-with-notes))
   :translate-alist
   '((template . org-rlr-slipshow-template)
     (headline . org-rlr-slipshow-headline)
