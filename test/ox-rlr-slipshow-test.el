@@ -46,6 +46,20 @@ invoked through the dispatcher, which is easy to miss when testing
     (should-not (string-prefix-p "---" (ox-rlr-slipshow-test--export source t)))))
 
 
+;;; The server
+
+(ert-deftest ox-rlr-slipshow-stop-without-a-server-is-harmless ()
+  "Stopping when nothing is running should report, not signal."
+  (should-not (org-rlr-slipshow--server))
+  (org-rlr-slipshow-stop))
+
+(ert-deftest ox-rlr-slipshow-server-and-compile-buffers-differ ()
+  "`get-buffer-process' returns one process per buffer, so sharing a
+buffer between the server and compile runs left the server unreachable."
+  (should-not (equal org-rlr-slipshow--compile-buffer
+                     org-rlr-slipshow--serve-buffer)))
+
+
 ;;; Slipshow's divergences from CommonMark
 
 (ert-deftest ox-rlr-slipshow-escapes-literal-braces ()

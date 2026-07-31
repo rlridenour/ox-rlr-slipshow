@@ -884,7 +884,9 @@ is synthesised for tables that have no header."
         (?y "As Slipshow file" org-rlr-slipshow-export-to-slipshow)
         (?h "As HTML file (compile)" org-rlr-slipshow-export-to-html)
         (?o "As HTML file and open" org-rlr-slipshow-export-to-html-and-open)
-        (?s "Serve with live reload" org-rlr-slipshow-serve)))
+        (?s "Serve with live reload" org-rlr-slipshow-serve)
+        ;; Not an export, but this is where the server was started from.
+        (?k "Stop the server" (lambda (_a _s _v _b) (org-rlr-slipshow-stop)))))
   :options-alist
   ;; A Markdown table of contents lands before the first slip separator,
   ;; where it renders as stray content in the top-level slip, so it is off
@@ -953,19 +955,52 @@ exporters.  Return the name of the file written."
                org-rlr-slipshow-extension subtreep)))
     (org-export-to-file 'rlr-slipshow file async subtreep visible-only body-only)))
 
-(defun org-rlr-slipshow--run (command source &rest args)
-  "Run Slipshow COMMAND on SOURCE with ARGS in a dedicated buffer.
+(defconst org-rlr-slipshow--compile-buffer "*Slipshow*"
+  "Buffer used for one-off `slipshow compile' runs.")
+
+(defconst org-rlr-slipshow--serve-buffer "*Slipshow Serve*"
+  "Buffer used for the long-running `slipshow serve' process.
+Kept apart from compile runs so that compiling does not disturb a
+running server, and so that the server can be found again and stopped.")
+
+(defun org-rlr-slipshow--run (buffer-name command source &rest args)
+  "Run Slipshow COMMAND on SOURCE with ARGS in BUFFER-NAME.
 Return the process buffer."
   (unless (executable-find org-rlr-slipshow-command)
     (user-error "Cannot find the `%s' program; see `org-rlr-slipshow-command'"
                 org-rlr-slipshow-command))
-  (let ((buffer (get-buffer-create "*Slipshow*"))
+  (let ((buffer (get-buffer-create buffer-name))
         (default-directory (file-name-directory (expand-file-name source))))
     (with-current-buffer buffer (erase-buffer))
-    (apply #'start-process "slipshow" buffer
+    (apply #'start-process (string-trim buffer-name "\\*" "\\*") buffer
            org-rlr-slipshow-command command
            (file-name-nondirectory source) args)
     buffer))
+
+(defun org-rlr-slipshow--server ()
+  "Return the live `slipshow serve' process, or nil."
+  (let* ((buffer (get-buffer org-rlr-slipshow--serve-buffer))
+         (process (and buffer (get-buffer-process buffer))))
+    (and process (process-live-p process) process)))
+
+;;;###autoload
+(defun org-rlr-slipshow-stop ()
+  "Stop the Slipshow server started by `org-rlr-slipshow-serve'."
+  (interactive)
+  (let ((process (org-rlr-slipshow--server)))
+    (if (not process)
+        (message "No Slipshow server is running")
+      ;; The default sentinel would report the signal as an error.
+      (set-process-sentinel process #'ignore)
+      ;; SIGINT first, so the server releases the port on its own terms.
+      (interrupt-process process)
+      (let ((deadline (+ (float-time) 2)))
+        (while (and (process-live-p process) (< (float-time) deadline))
+          (accept-process-output process 0.05)))
+      (when (process-live-p process)
+        (delete-process process))
+      (message "Stopped the Slipshow server on port %d"
+               org-rlr-slipshow-serve-port))))
 
 ;;;###autoload
 (defun org-rlr-slipshow-export-to-html
@@ -977,7 +1012,8 @@ exporters.  Return the name of the HTML file that will be produced."
   (let* ((source (org-rlr-slipshow-export-to-slipshow
                   async subtreep visible-only body-only))
          (html (concat (file-name-sans-extension source) ".html")))
-    (org-rlr-slipshow--run "compile" source "-o" (file-name-nondirectory html))
+    (org-rlr-slipshow--run org-rlr-slipshow--compile-buffer
+                           "compile" source "-o" (file-name-nondirectory html))
     (message "Compiling %s with Slipshow..." (file-name-nondirectory source))
     html))
 
@@ -990,7 +1026,8 @@ exporters."
   (interactive)
   (let ((html (org-rlr-slipshow-export-to-html
                async subtreep visible-only body-only))
-        (process (get-buffer-process (get-buffer "*Slipshow*"))))
+        (process (get-buffer-process
+                  (get-buffer org-rlr-slipshow--compile-buffer))))
     (if (not process)
         (browse-url-of-file html)
       (set-process-sentinel
@@ -998,7 +1035,7 @@ exporters."
        (lambda (_process event)
          (if (string-match-p "finished" event)
              (browse-url-of-file html)
-           (pop-to-buffer "*Slipshow*")))))
+           (pop-to-buffer org-rlr-slipshow--compile-buffer)))))
     html))
 
 ;;;###autoload
@@ -1009,11 +1046,17 @@ ASYNC, SUBTREEP, VISIBLE-ONLY and BODY-ONLY behave as in other Org
 exporters.
 
 Slipshow watches the exported source file, not the Org buffer, so
-re-export to refresh the presentation."
+re-export to refresh the presentation.
+
+Any server already running is stopped first: a second one would inherit
+neither the port nor the buffer, and would be left running with no way
+to reach it.  Stop the server with `org-rlr-slipshow-stop'."
   (interactive)
   (let ((source (org-rlr-slipshow-export-to-slipshow
                  async subtreep visible-only body-only)))
-    (org-rlr-slipshow--run "serve" source
+    (when (org-rlr-slipshow--server)
+      (org-rlr-slipshow-stop))
+    (org-rlr-slipshow--run org-rlr-slipshow--serve-buffer "serve" source
                            "--port" (number-to-string org-rlr-slipshow-serve-port))
     (message "Serving %s on http://localhost:%d"
              (file-name-nondirectory source) org-rlr-slipshow-serve-port)

@@ -51,6 +51,13 @@ From the Org export dispatcher (`C-c C-e`), press `y`:
 | `h` | Export and compile to standalone HTML |
 | `o` | Export, compile, and open in a browser |
 | `s` | Export and `slipshow serve` with live reload |
+| `k` | Stop the server |
+
+The server runs in its own `*Slipshow Serve*` buffer, separate from the
+`*Slipshow*` buffer compile runs use, so compiling never disturbs it. Stop it
+with `k` in the dispatcher or `M-x org-rlr-slipshow-stop`, which sends SIGINT
+and waits for the port to be released before insisting. Serving again stops any
+running server first, rather than leaving one behind holding the port.
 
 Org's table of contents is **off by default** here: a Markdown TOC is emitted
 before the first slip separator, where it renders as stray content in the
