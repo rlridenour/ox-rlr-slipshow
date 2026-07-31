@@ -82,6 +82,26 @@ graph LR;
 
 {slip}
 -----
+# Figures
+
+The attributes below land on the image itself, not on the paragraph
+wrapped around it, so the width actually takes effect.
+
+![img](figures/number-line.svg){#number-line style="width:80%"}
+
+The axis is drawn from the start. The primes are a group inside the SVG
+carrying `class`"unrevealed"=, so they wait for their own step.
+
+{reveal=primes}
+
+{slip}
+-----
+# A part from another file
+
+{include src="parts/history.slp"}
+
+{slip}
+-----
 # Layout
 
 {.columns style="display:flex; gap:2em" children:style="flex:1"}

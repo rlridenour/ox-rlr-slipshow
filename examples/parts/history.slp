@@ -1,0 +1,7 @@
+Euclid gave the proof in the *Elements*, around 300 BC. The sieve is
+older still, and is usually credited to Eratosthenes.
+
+{.remark title="Included from another file"}
+> Everything in this box lives in `examples/parts/history.org` and is
+> assembled into the deck by Slipshow at compile time, not by Org.
+

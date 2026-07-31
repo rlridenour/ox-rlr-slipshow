@@ -1,0 +1,16 @@
+#+TITLE: A note on the history
+#+SLIPSHOW_STRUCTURE: flat
+
+# This file is pulled into demo.org with #+SLIPSHOW_INCLUDE:.  Export it
+# body-only, so that the frontmatter belonging to the main file is not
+# repeated here, and flat, so that it contributes content rather than a
+# slip of its own.
+
+Euclid gave the proof in the /Elements/, around 300 BC. The sieve is
+older still, and is usually credited to Eratosthenes.
+
+#+ATTR_SLIPSHOW: title="Included from another file"
+#+begin_remark
+Everything in this box lives in =examples/parts/history.org= and is
+assembled into the deck by Slipshow at compile time, not by Org.
+#+end_remark

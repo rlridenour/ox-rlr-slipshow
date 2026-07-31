@@ -76,6 +76,26 @@ graph LR;
     B --> A;
 #+end_src
 
+* Figures
+
+The attributes below land on the image itself, not on the paragraph
+wrapped around it, so the width actually takes effect.
+
+#+ATTR_SLIPSHOW: #number-line style="width:80%"
+[[file:figures/number-line.svg]]
+
+The axis is drawn from the start. The primes are a group inside the SVG
+carrying =class="unrevealed"=, so they wait for their own step.
+
+# Slipshow warns "No element with id 'primes' was found" here: its
+# compile-time check does not look inside SVG assets.  The id is present
+# in the compiled page and the reveal works.
+#+SLIPSHOW: reveal=primes
+
+* A part from another file
+
+#+SLIPSHOW_INCLUDE: parts/history.slp
+
 * Layout
 
 #+begin_columns

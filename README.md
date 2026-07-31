@@ -370,17 +370,37 @@ a `js` block runs it on that step.
   even though the note it lives in is hidden.
 - Image alt text is always the literal `img`, which is what ox-md emits; write
   the image as raw HTML if the alt text matters.
+- Targeting an id **inside an SVG** works at runtime, but Slipshow's
+  compile-time check does not look into SVG assets, so it warns that the id was
+  not found. The warning is safe to ignore.
 
 ## Example
 
-`examples/demo.org` exercises every feature above. To build it:
+`examples/demo.org` exercises every feature above. Build it with:
 
 ```sh
-emacs --batch -L . --eval '(progn (require (quote ox-rlr-slipshow)) \
-  (find-file "examples/demo.org") \
-  (org-export-to-file (quote rlr-slipshow) (expand-file-name "examples/demo.slp")))'
-slipshow compile examples/demo.slp -o examples/demo.html
+./examples/build.sh
 ```
+
+The deck is assembled from two Org files, which is the point of the
+`#+SLIPSHOW_INCLUDE:` slip: `examples/parts/history.org` is exported body-only
+and spliced in by Slipshow at compile time. `examples/figures/number-line.svg`
+carries ids on its own groups, so the *Figures* slip sizes the image and then
+reveals the primes on it as a separate step.
+
+One caveat if you run the build: it prints
+
+```
+warning: No element with id 'primes' was found
+```
+
+That is a false positive. Slipshow's compile-time id check does not look inside
+SVG assets, but the id is present in the compiled page — you can see it in
+`examples/demo.html` — and the reveal works.
+
+If you write the export by hand rather than using the script, note that
+`find-file` moves `default-directory` to the Org file's own directory, so give
+`org-export-to-file` an absolute path.
 
 ## Tests
 
