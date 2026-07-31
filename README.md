@@ -262,18 +262,48 @@ or set `org-rlr-slipshow-with-notes` to `nil`.
 | `#+SLIPSHOW_CSS:` | `css` |
 | `#+SLIPSHOW_JS:` | `js` |
 | `#+SLIPSHOW_HIGHLIGHTJS_THEME:` | `highlightjs-theme` |
+| `#+SLIPSHOW_MATH_MODE:` | `math-mode` — `mathjax` (Slipshow's default) or `katex` |
+| `#+SLIPSHOW_MATH_LINK:` | `math-link` — a self-hosted math library |
 | `#+SLIPSHOW_ATTRIBUTES:` | `attributes` |
 | `#+SLIPSHOW_TOPLEVEL_ATTRIBUTES:` | `toplevel-attributes` |
 | `#+SLIPSHOW_EXTERNAL_IDS:` | `external-ids` |
 
-`org-rlr-slipshow-theme` and `org-rlr-slipshow-dimension` supply defaults.
+`org-rlr-slipshow-theme`, `org-rlr-slipshow-dimension`,
+`org-rlr-slipshow-math-mode` and `org-rlr-slipshow-math-link` supply defaults.
+Keys you leave unset are omitted rather than written out with Slipshow's own
+default, so the frontmatter stays as small as the deck needs.
 
 ## Math and tables
 
 Org LaTeX fragments are normalised to Slipshow's delimiters: `\(x\)` becomes
 `$x$`, `\[x\]` becomes `$$x$$`, and LaTeX environments are wrapped in `$$`.
+Rendering is MathJax unless you ask for KaTeX with `#+SLIPSHOW_MATH_MODE:`.
+
 Org tables are emitted as GFM tables with alignment preserved; a delimiter row
 is synthesised for tables that have no header, since GFM requires one.
+
+## Code blocks and diagrams
+
+Src blocks become fenced blocks, and the language passes through — except
+where Slipshow gives an info string a meaning of its own:
+
+| Org | Emitted | Result |
+|---|---|---|
+| `#+begin_src mermaid` | ` ```=mermaid ` | a rendered diagram |
+| `#+begin_src slip-script` | ` ```slip-script ` | a script that runs |
+| `#+begin_src html` | ` ```html ` | HTML shown as source |
+| `#+begin_export html` | the markup itself | HTML injected into the page |
+
+Mermaid needs the `=` prefix to render; a plain ` ```mermaid ` fence is
+highlighted as source *and* makes Slipshow warn that it doesn't know the
+language. `html` is deliberately left alone, since `#+begin_src html` means
+you want to show the markup — `#+begin_export html` is how you inject it.
+
+The mapping lives in `org-rlr-slipshow-language-alist`; set it to `nil` to emit
+every language verbatim, as a presentation about Mermaid itself would want.
+
+Actions work on code blocks like anything else, so `#+ATTR_SLIPSHOW: exec` on
+a `js` block runs it on that step.
 
 ## Known limitations
 

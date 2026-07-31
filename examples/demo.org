@@ -68,6 +68,14 @@ Mathematics is the queen of the sciences, and number theory is the queen
 of mathematics.
 #+end_quote
 
+* Sieving
+
+#+begin_src mermaid
+graph LR;
+    A[Take the next number] --> B[Mark its multiples];
+    B --> A;
+#+end_src
+
 * Layout
 
 #+begin_columns

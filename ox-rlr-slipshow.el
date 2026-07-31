@@ -132,6 +132,39 @@ Either \"WIDTHxHEIGHT\" such as \"1920x1080\", or a ratio such as
   :type '(choice (const :tag "Slipshow default" nil) string)
   :group 'org-export-rlr-slipshow)
 
+(defcustom org-rlr-slipshow-math-mode nil
+  "Math renderer, or nil to let Slipshow decide.
+Slipshow's own default is MathJax."
+  :type '(choice (const :tag "Slipshow default (MathJax)" nil)
+                 (const :tag "MathJax" "mathjax")
+                 (const :tag "KaTeX" "katex"))
+  :group 'org-export-rlr-slipshow)
+
+(defcustom org-rlr-slipshow-math-link nil
+  "Path or URL to the math library, or nil for the bundled one.
+Useful when serving MathJax or KaTeX from somewhere of your own."
+  :type '(choice (const :tag "Slipshow default" nil) string)
+  :group 'org-export-rlr-slipshow)
+
+(defcustom org-rlr-slipshow-language-alist
+  '(("mermaid" . "=mermaid"))
+  "Alist mapping an Org src-block language to Slipshow's info string.
+
+Slipshow renders a fenced block as something other than source when its
+info string begins with `=': `=mermaid' becomes a rendered diagram.  A
+plain `mermaid' block is highlighted as code instead, and Slipshow
+warns that it does not know the language.
+
+Raw HTML has an Org spelling of its own --- #+begin_export html ---
+so `html' is deliberately absent here: #+begin_src html means you want
+to show the markup, not run it.
+
+Set this to nil to emit every language verbatim, as a presentation
+about Mermaid itself would want."
+  :type '(alist :key-type (string :tag "Org language")
+                :value-type (string :tag "Slipshow info string"))
+  :group 'org-export-rlr-slipshow)
+
 (defcustom org-rlr-slipshow-columns-style "display:flex; gap:2em"
   "Inline CSS applied to a #+begin_columns block, or nil for none.
 
@@ -429,6 +462,12 @@ INFO is the current export plist."
                  (org-rlr-slipshow--fm-pair
                   "dimension" (or (plist-get info :slipshow-dimension)
                                   org-rlr-slipshow-dimension))
+                 (org-rlr-slipshow--fm-pair
+                  "math-mode" (or (plist-get info :slipshow-math-mode)
+                                  org-rlr-slipshow-math-mode))
+                 (org-rlr-slipshow--fm-pair
+                  "math-link" (or (plist-get info :slipshow-math-link)
+                                  org-rlr-slipshow-math-link))
                  (org-rlr-slipshow--fm-pair "css" (plist-get info :slipshow-css))
                  (org-rlr-slipshow--fm-pair "js" (plist-get info :slipshow-js))
                  (org-rlr-slipshow--fm-pair
@@ -663,6 +702,15 @@ note."
             (org-rlr-slipshow--element-attrs center-block)))
           (org-rlr-slipshow--gt-group contents)))
 
+(defun org-rlr-slipshow--info-string (lang)
+  "Return the Slipshow info string for src-block language LANG.
+Languages Slipshow gives a meaning of their own are mapped through
+`org-rlr-slipshow-language-alist'; anything else passes through."
+  (or (and lang
+           (cdr (assoc-string lang org-rlr-slipshow-language-alist t)))
+      lang
+      ""))
+
 (defun org-rlr-slipshow-src-block (src-block _contents info)
   "Transcode SRC-BLOCK to a fenced code block.
 INFO is the current export plist."
@@ -670,7 +718,7 @@ INFO is the current export plist."
         (code (org-export-format-code-default src-block info)))
     (concat (org-rlr-slipshow--attr-line
              (org-rlr-slipshow--element-attrs src-block))
-            "```" (or lang "") "\n"
+            "```" (org-rlr-slipshow--info-string lang) "\n"
             code
             (unless (string-suffix-p "\n" code) "\n")
             "```\n")))
@@ -813,6 +861,8 @@ is synthesised for tables that have no header."
     (:slipshow-css "SLIPSHOW_CSS" nil nil space)
     (:slipshow-js "SLIPSHOW_JS" nil nil space)
     (:slipshow-highlightjs-theme "SLIPSHOW_HIGHLIGHTJS_THEME" nil nil t)
+    (:slipshow-math-mode "SLIPSHOW_MATH_MODE" nil nil t)
+    (:slipshow-math-link "SLIPSHOW_MATH_LINK" nil nil t)
     (:slipshow-attributes "SLIPSHOW_ATTRIBUTES" nil nil t)
     (:slipshow-toplevel-attributes "SLIPSHOW_TOPLEVEL_ATTRIBUTES" nil nil t)
     (:slipshow-external-ids "SLIPSHOW_EXTERNAL_IDS" nil nil space)

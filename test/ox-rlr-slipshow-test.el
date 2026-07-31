@@ -149,6 +149,43 @@ invoked through the dispatcher, which is easy to miss when testing
     (should-not (string-match-p "display:flex" out))))
 
 
+;;; Code blocks and math
+
+(ert-deftest ox-rlr-slipshow-mermaid-gets-the-equals-prefix ()
+  "Slipshow renders `=mermaid' as a diagram; plain `mermaid' is source.
+A bare `mermaid' info string also makes Slipshow warn that highlightjs
+does not know the language."
+  (let ((out (ox-rlr-slipshow-test--export
+              "#+begin_src mermaid\ngraph TD;\n  A-->B;\n#+end_src\n")))
+    (should (string-match-p "^```=mermaid$" out))))
+
+(ert-deftest ox-rlr-slipshow-other-languages-pass-through ()
+  "#+begin_src html means show the markup, not inject it.
+Injecting it is what #+begin_export html is for."
+  (let ((out (ox-rlr-slipshow-test--export
+              "#+begin_src html\n<p>source</p>\n#+end_src\n")))
+    (should (string-match-p "^```html$" out))
+    (should-not (string-match-p "=html" out))))
+
+(ert-deftest ox-rlr-slipshow-language-mapping-can-be-disabled ()
+  (let* ((org-rlr-slipshow-language-alist nil)
+         (out (ox-rlr-slipshow-test--export
+               "#+begin_src mermaid\ngraph TD;\n#+end_src\n")))
+    (should (string-match-p "^```mermaid$" out))))
+
+(ert-deftest ox-rlr-slipshow-math-frontmatter ()
+  (let ((out (ox-rlr-slipshow-test--export
+              (concat "#+SLIPSHOW_MATH_MODE: katex\n"
+                      "#+SLIPSHOW_MATH_LINK: assets/katex\n\ntext\n"))))
+    (should (string-match-p "^math-mode: katex$" out))
+    (should (string-match-p "^math-link: assets/katex$" out))))
+
+(ert-deftest ox-rlr-slipshow-math-mode-defaults-to-slipshow ()
+  "Emitting a key Slipshow would have chosen anyway only adds noise."
+  (let ((out (ox-rlr-slipshow-test--export "text\n")))
+    (should-not (string-match-p "math-mode" out))))
+
+
 ;;; Speaker notes
 
 (defconst ox-rlr-slipshow-test--notes-slip

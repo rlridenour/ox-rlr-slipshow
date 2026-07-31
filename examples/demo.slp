@@ -72,6 +72,16 @@ let rec fact n = if n <= 1 then 1 else n * fact (n - 1)
 
 {slip}
 -----
+# Sieving
+
+```=mermaid
+graph LR;
+    A[Take the next number] --> B[Mark its multiples];
+    B --> A;
+```
+
+{slip}
+-----
 # Layout
 
 {.columns style="display:flex; gap:2em" children:style="flex:1"}
