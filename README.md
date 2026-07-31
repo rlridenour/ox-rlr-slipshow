@@ -164,6 +164,60 @@ set `org-rlr-slipshow-columns-style` and `org-rlr-slipshow-column-style` to
 #+end_columns
 ```
 
+## Images
+
+An `#+ATTR_SLIPSHOW:` line before a paragraph applies to the *paragraph*, which
+for a paragraph holding nothing but an image is the wrong target — sizing the
+paragraph does not size the picture. So attributes on a lone image are attached
+to the image inline:
+
+```org
+#+ATTR_SLIPSHOW: style="width:20%"
+[[file:diagram.svg]]
+```
+
+becomes `![img](diagram.svg){style="width:20%"}`, which Slipshow puts on the
+image's own container. A paragraph with anything else in it keeps the ordinary
+attribute line, so marking up a sentence that happens to contain an image still
+marks up the sentence.
+
+Slipshow decides between image, video, audio, PDF and SVG from the file
+extension, so plain Org links to any of those work. An SVG's internal ids are
+addressable too, which is how you reveal a figure piece by piece:
+
+```org
+[[file:figure.svg]]
+
+#+SLIPSHOW: reveal=my-square
+```
+
+## Multi-file presentations
+
+Org's own `#+INCLUDE:` splices files together *before* export, and works here
+unchanged — use it when you just want to split a long source file.
+
+Slipshow's `{include}` is a different thing: it keeps the parts as separate
+`.slp` files and assembles them at compile time, which is what you want for
+incremental compilation and for pulling in HTML or SVG files. Emit one with:
+
+```org
+#+SLIPSHOW_INCLUDE: parts/introduction.slp slip
+#+SLIPSHOW_INCLUDE: "parts/main results.slp" slip
+```
+
+Anything after the path is an attribute set applied to the included content, so
+`slip` makes the included file a slip of its own. Quote the path if it contains
+a space.
+
+Paths resolve relative to the including file, and are passed through exactly as
+you write them — this back-end cannot know where you export the other parts to.
+Note that you reference the compiled `.slp`, not the `.org`; Slipshow names the
+offending path if it cannot read one.
+
+Export the parts themselves with **body-only** (`C-c C-e` then `C-b` before
+choosing the output), which suppresses the frontmatter that only belongs in the
+main file.
+
 ## Progressive lists
 
 Off by default. Enable per list:
@@ -314,6 +368,8 @@ a `js` block runs it on that step.
   containing an unbalanced `]` may confuse the `[...]{pause}` wrapper.
 - A `{pause}` or other action **inside** a notes block still consumes a step,
   even though the note it lives in is hidden.
+- Image alt text is always the literal `img`, which is what ox-md emits; write
+  the image as raw HTML if the alt text matters.
 
 ## Example
 

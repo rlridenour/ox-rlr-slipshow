@@ -564,12 +564,27 @@ INFO is the current export plist."
        (t
         (concat (org-rlr-slipshow--attr-line user) heading "\n\n" body))))))
 
+(defconst org-rlr-slipshow--lone-image-re
+  "\\`!\\[[^]]*\\](.*)\\'"
+  "Match a paragraph body consisting of a single Markdown image.
+`.' does not match a newline, so a paragraph with anything else in it
+cannot match.")
+
 (defun org-rlr-slipshow-paragraph (paragraph contents info)
-  "Transcode PARAGRAPH with CONTENTS, prefixing any attribute line.
-INFO is the current export plist."
-  (concat (org-rlr-slipshow--attr-line
-           (org-rlr-slipshow--element-attrs paragraph))
-          (org-md-paragraph paragraph contents info)))
+  "Transcode PARAGRAPH with CONTENTS, attaching any attributes.
+INFO is the current export plist.
+
+Attributes normally go on a line of their own, which Slipshow reads as
+belonging to the paragraph.  For a paragraph holding nothing but an
+image that is the wrong target --- sizing the paragraph does not size
+the picture --- so they are attached to the image inline instead,
+where Slipshow puts them on the image's own container."
+  (let* ((attrs (org-rlr-slipshow--element-attrs paragraph))
+         (body (org-md-paragraph paragraph contents info))
+         (image (string-trim-right body)))
+    (if (and attrs (string-match-p org-rlr-slipshow--lone-image-re image))
+        (format "%s{%s}\n" image attrs)
+      (concat (org-rlr-slipshow--attr-line attrs) body))))
 
 (defun org-rlr-slipshow--pause-list-p (plain-list info)
   "Return non-nil when items of PLAIN-LIST should be revealed one by one.
@@ -761,14 +776,35 @@ INFO is the current export plist."
                (org-rlr-slipshow--element-attrs environment))
               "$$\n" value "\n$$\n"))))
 
+(defun org-rlr-slipshow--include-line (value)
+  "Return the `{include ...}' element for a #+SLIPSHOW_INCLUDE: VALUE.
+VALUE is a path, optionally double-quoted so that it may contain
+spaces, followed by any further attributes.  The path is passed through
+untouched: this back-end cannot know where you export the other parts
+to, and Slipshow names the offending path when it cannot read one."
+  (let ((value (org-rlr-slipshow--clean value)))
+    (when value
+      (let ((quoted (string-match "\\`\"\\([^\"]*\\)\"[ \t]*" value)))
+        (unless quoted (string-match "\\`\\([^ \t]+\\)[ \t]*" value))
+        (let ((path (match-string 1 value))
+              (rest (substring value (match-end 0))))
+          (format "{%s}"
+                  (org-rlr-slipshow--join-attrs
+                   "include" (format "src=\"%s\"" path) rest)))))))
+
 (defun org-rlr-slipshow-keyword (keyword contents info)
-  "Transcode KEYWORD, handling the standalone #+SLIPSHOW: form.
+  "Transcode KEYWORD, handling this back-end's standalone forms.
 CONTENTS is nil.  INFO is the current export plist."
-  (if (string= (org-element-property :key keyword) "SLIPSHOW")
-      (let ((value (org-rlr-slipshow--clean
-                    (org-element-property :value keyword))))
-        (if value (format "{%s}" value) ""))
-    (org-md-keyword keyword contents info)))
+  (pcase (org-element-property :key keyword)
+    ("SLIPSHOW"
+     (let ((value (org-rlr-slipshow--clean
+                   (org-element-property :value keyword))))
+       (if value (format "{%s}" value) "")))
+    ("SLIPSHOW_INCLUDE"
+     (or (org-rlr-slipshow--include-line
+          (org-element-property :value keyword))
+         ""))
+    (_ (org-md-keyword keyword contents info))))
 
 (defun org-rlr-slipshow-export-snippet (export-snippet _contents _info)
   "Transcode EXPORT-SNIPPET, passing Slipshow snippets through verbatim.

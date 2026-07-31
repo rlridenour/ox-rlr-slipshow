@@ -149,6 +149,58 @@ invoked through the dispatcher, which is easy to miss when testing
     (should-not (string-match-p "display:flex" out))))
 
 
+;;; Includes
+
+(ert-deftest ox-rlr-slipshow-include-emits-an-include-element ()
+  (let ((out (ox-rlr-slipshow-test--export
+              "#+SLIPSHOW_INCLUDE: parts/one.slp\n")))
+    (should (string-match-p
+             (regexp-quote "{include src=\"parts/one.slp\"}") out))))
+
+(ert-deftest ox-rlr-slipshow-include-carries-extra-attributes ()
+  "Attributes on an include apply to the content it pulls in."
+  (let ((out (ox-rlr-slipshow-test--export
+              "#+SLIPSHOW_INCLUDE: parts/one.slp slip\n")))
+    (should (string-match-p
+             (regexp-quote "{include src=\"parts/one.slp\" slip}") out))))
+
+(ert-deftest ox-rlr-slipshow-include-accepts-a-quoted-path ()
+  "Quoting is the only way to name a path containing a space."
+  (let ((out (ox-rlr-slipshow-test--export
+              "#+SLIPSHOW_INCLUDE: \"my parts/one.slp\" slip\n")))
+    (should (string-match-p
+             (regexp-quote "{include src=\"my parts/one.slp\" slip}") out))))
+
+
+;;; Images
+
+(ert-deftest ox-rlr-slipshow-image-attributes-go-on-the-image ()
+  "On its own line the attribute set lands on the paragraph, so sizing
+an image that way silently does nothing."
+  (let ((out (ox-rlr-slipshow-test--export
+              "#+ATTR_SLIPSHOW: style=\"width:20%\"\n[[file:fig.svg]]\n")))
+    (should (string-match-p
+             (regexp-quote "](fig.svg){style=\"width:20%\"}") out))
+    (should-not (string-match-p "^{style" out))))
+
+(ert-deftest ox-rlr-slipshow-text-paragraph-keeps-its-attribute-line ()
+  (let ((out (ox-rlr-slipshow-test--export
+              "#+ATTR_SLIPSHOW: pause\nJust some words.\n")))
+    (should (string-match-p "^{pause}$" out))))
+
+(ert-deftest ox-rlr-slipshow-image-among-words-is-not-a-lone-image ()
+  "Attaching the attributes to the image would move them off the
+paragraph the author marked up."
+  (let ((out (ox-rlr-slipshow-test--export
+              "#+ATTR_SLIPSHOW: pause\nSee [[file:fig.svg]] here.\n")))
+    (should (string-match-p "^{pause}$" out))))
+
+(ert-deftest ox-rlr-slipshow-plain-image-is-untouched ()
+  (let ((out (ox-rlr-slipshow-test--export "[[file:fig.svg]]\n")))
+    (should (string-match-p (regexp-quote "](fig.svg)") out))
+    (should-not (string-match-p "{" out))))
+
+
 ;;; Code blocks and math
 
 (ert-deftest ox-rlr-slipshow-mermaid-gets-the-equals-prefix ()
