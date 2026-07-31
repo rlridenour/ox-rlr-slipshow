@@ -885,8 +885,11 @@ is synthesised for tables that have no header."
         (?h "As HTML file (compile)" org-rlr-slipshow-export-to-html)
         (?o "As HTML file and open" org-rlr-slipshow-export-to-html-and-open)
         (?s "Serve with live reload" org-rlr-slipshow-serve)
-        ;; Not an export, but this is where the server was started from.
-        (?k "Stop the server" (lambda (_a _s _v _b) (org-rlr-slipshow-stop)))))
+        (?w "Serve and re-export on save" org-rlr-slipshow-watch)
+        ;; Not exports, but this is where the server was started from.
+        (?k "Stop the server" (lambda (_a _s _v _b) (org-rlr-slipshow-stop)))
+        (?K "Stop watching and serving"
+            (lambda (_a _s _v _b) (org-rlr-slipshow-unwatch)))))
   :options-alist
   ;; A Markdown table of contents lands before the first slip separator,
   ;; where it renders as stray content in the top-level slip, so it is off
@@ -1061,6 +1064,91 @@ to reach it.  Stop the server with `org-rlr-slipshow-stop'."
     (message "Serving %s on http://localhost:%d"
              (file-name-nondirectory source) org-rlr-slipshow-serve-port)
     source))
+
+
+;;; Watching a buffer
+
+(defvar org-rlr-slipshow--watched-buffer nil
+  "Buffer currently re-exporting on save, or nil.
+Only one buffer watches at a time, because only one server runs.")
+
+(defvar-local org-rlr-slipshow--watch-args nil
+  "Export arguments reused for each re-export while watching.")
+
+(defun org-rlr-slipshow--unwatch-buffer ()
+  "Detach the watch hooks, leaving any running server alone."
+  (when (buffer-live-p org-rlr-slipshow--watched-buffer)
+    (with-current-buffer org-rlr-slipshow--watched-buffer
+      (remove-hook 'after-save-hook #'org-rlr-slipshow--re-export t)
+      (remove-hook 'kill-buffer-hook #'org-rlr-slipshow-unwatch t)
+      (kill-local-variable 'org-rlr-slipshow--watch-args)))
+  (setq org-rlr-slipshow--watched-buffer nil))
+
+(defun org-rlr-slipshow--re-export ()
+  "Re-export the watched buffer.  Runs from `after-save-hook'.
+
+Slipshow serves and watches the exported file, so rewriting it is all
+that is needed to refresh the presentation."
+  (if (not (org-rlr-slipshow--server))
+      ;; Nothing is left to refresh, and silently re-exporting for a
+      ;; server that has gone away only looks like it is still working.
+      (let ((name (buffer-name)))
+        (org-rlr-slipshow--unwatch-buffer)
+        (message "Slipshow server is gone; stopped watching %s" name))
+    (condition-case err
+        (progn
+          (let ((inhibit-message t))
+            (apply #'org-rlr-slipshow-export-to-slipshow
+                   org-rlr-slipshow--watch-args))
+          (message "Slipshow: re-exported %s" (buffer-name)))
+      ;; Signalling here would abort the rest of `after-save-hook', so
+      ;; report the failure and leave the other hooks to run.
+      (error
+       (message "Slipshow re-export of %s failed: %s"
+                (buffer-name) (error-message-string err))))))
+
+;;;###autoload
+(defun org-rlr-slipshow-watch
+    (&optional async subtreep visible-only body-only)
+  "Export the current buffer, serve it, and re-export on every save.
+ASYNC, SUBTREEP, VISIBLE-ONLY and BODY-ONLY behave as in other Org
+exporters.
+
+Slipshow's server already watches the exported file and reloads the
+browser when it changes, so this only adds the missing half: rewriting
+that file whenever the Org buffer is saved.
+
+Any buffer already being watched is released first, and
+`org-rlr-slipshow-serve' stops any running server, so calling this
+again -- here or in another buffer -- replaces the previous watcher
+rather than accumulating one.  Stop with `org-rlr-slipshow-unwatch'."
+  (interactive)
+  (org-rlr-slipshow--unwatch-buffer)
+  (let ((source (org-rlr-slipshow-serve async subtreep visible-only body-only)))
+    ;; Re-exports are always synchronous: an async export spawns a fresh
+    ;; Emacs, which is far too much to do on every save.
+    (setq org-rlr-slipshow--watch-args
+          (list nil subtreep visible-only body-only))
+    (setq org-rlr-slipshow--watched-buffer (current-buffer))
+    (add-hook 'after-save-hook #'org-rlr-slipshow--re-export nil t)
+    (add-hook 'kill-buffer-hook #'org-rlr-slipshow-unwatch nil t)
+    (message "Watching %s: saving re-exports %s, served on http://localhost:%d"
+             (buffer-name) (file-name-nondirectory source)
+             org-rlr-slipshow-serve-port)
+    source))
+
+;;;###autoload
+(defun org-rlr-slipshow-unwatch ()
+  "Stop re-exporting on save, and stop the Slipshow server."
+  (interactive)
+  (let ((name (and (buffer-live-p org-rlr-slipshow--watched-buffer)
+                   (buffer-name org-rlr-slipshow--watched-buffer))))
+    (org-rlr-slipshow--unwatch-buffer)
+    (when (org-rlr-slipshow--server)
+      (org-rlr-slipshow-stop))
+    (message (if name
+                 (format "Stopped watching %s" name)
+               "No buffer is being watched"))))
 
 ;;;###autoload
 (defun org-rlr-slipshow-publish-to-slipshow (plist filename pub-dir)

@@ -60,6 +60,23 @@ buffer between the server and compile runs left the server unreachable."
                      org-rlr-slipshow--serve-buffer)))
 
 
+(ert-deftest ox-rlr-slipshow-unwatch-without-a-watcher-is-harmless ()
+  (should-not org-rlr-slipshow--watched-buffer)
+  (org-rlr-slipshow-unwatch))
+
+(ert-deftest ox-rlr-slipshow-re-export-gives-up-when-the-server-is-gone ()
+  "Re-exporting for a server that has gone away only looks like it works,
+so the watch releases itself instead."
+  (with-temp-buffer
+    (org-mode)
+    (setq org-rlr-slipshow--watched-buffer (current-buffer))
+    (add-hook 'after-save-hook #'org-rlr-slipshow--re-export nil t)
+    (should-not (org-rlr-slipshow--server))
+    (org-rlr-slipshow--re-export)
+    (should-not org-rlr-slipshow--watched-buffer)
+    (should-not (memq #'org-rlr-slipshow--re-export after-save-hook))))
+
+
 ;;; Slipshow's divergences from CommonMark
 
 (ert-deftest ox-rlr-slipshow-escapes-literal-braces ()

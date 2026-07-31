@@ -51,7 +51,31 @@ From the Org export dispatcher (`C-c C-e`), press `y`:
 | `h` | Export and compile to standalone HTML |
 | `o` | Export, compile, and open in a browser |
 | `s` | Export and `slipshow serve` with live reload |
+| `w` | Serve, and re-export on every save |
 | `k` | Stop the server |
+| `K` | Stop watching and serving |
+
+### Writing with the presentation open
+
+`org-rlr-slipshow-watch` (`w`) is the one to use while you write. Slipshow's
+server already watches the exported `.slp` and reloads the browser when it
+changes, so the only missing piece is rewriting that file — this adds an
+`after-save-hook` that re-exports the buffer, and every `C-x C-s` reaches the
+browser.
+
+Only one buffer is watched at a time, because only one server runs. Calling it
+again — in the same buffer or another one — releases the previous watcher first
+rather than accumulating hooks or servers. `org-rlr-slipshow-unwatch` (`K`)
+stops both the watching and the server, and killing the watched buffer does the
+same.
+
+Two things it deliberately does not do. Re-exports are always synchronous, since
+an async export spawns a fresh Emacs and that is far too much for every save. And
+if the server has gone away, the next save stops the watch and says so, rather
+than quietly rewriting a file nothing is serving. A failed export is reported
+without aborting the save or the rest of `after-save-hook`.
+
+### Server buffers
 
 The server runs in its own `*Slipshow Serve*` buffer, separate from the
 `*Slipshow*` buffer compile runs use, so compiling never disturbs it. Stop it
