@@ -121,7 +121,12 @@ each on its own step."
 
 (defcustom org-rlr-slipshow-theme nil
   "Default Slipshow theme, or nil to let Slipshow decide.
-Either a theme name such as \"vanier\" or a path to a CSS file."
+
+Either a theme name --- \"default\", \"vanier\" or \"none\" --- or a path
+to a CSS file, which may begin with `~'.  Note that a CSS file replaces
+the built-in theme rather than adding to it, losing both the base rules
+and the embedded fonts; to build on a theme, name it here and put your
+own rules in #+SLIPSHOW_CSS:, which Slipshow loads afterwards."
   :type '(choice (const :tag "Slipshow default" nil) string)
   :group 'org-export-rlr-slipshow)
 
@@ -442,6 +447,29 @@ INFO is the current export plist."
                 (if (listp value) (mapconcat #'identity value " ") value))))
     (when value (format "%s: %s" key value))))
 
+(defun org-rlr-slipshow--expand-asset (path)
+  "Return PATH with a leading `~' expanded, or PATH unchanged.
+
+Slipshow resolves a relative asset path against the source file, and
+does not expand `~' itself: it reports the file as unreadable and then
+falls back to emitting the literal path as a remote link, so the deck
+compiles without the stylesheet.  Only `~' is expanded here, leaving
+relative paths, URLs and built-in theme names alone."
+  (if (string-prefix-p "~" path) (expand-file-name path) path))
+
+(defun org-rlr-slipshow--fm-assets (key value)
+  "Return a frontmatter line for KEY and asset VALUE, or nil when blank.
+
+VALUE is a path, a URL, or several of them separated by whitespace ---
+Slipshow splits the `css' and `js' fields on spaces.  Each is expanded
+with `org-rlr-slipshow--expand-asset'."
+  (let ((value (org-rlr-slipshow--clean
+                (if (listp value) (mapconcat #'identity value " ") value))))
+    (when value
+      (org-rlr-slipshow--fm-pair
+       key (mapconcat #'org-rlr-slipshow--expand-asset
+                      (split-string value "[ \t]+" t) " ")))))
+
 (defun org-rlr-slipshow--frontmatter (info)
   "Return the `---' delimited frontmatter block for INFO, or an empty string."
   (let* ((slide (eq (org-rlr-slipshow--structure info) 'slide))
@@ -456,7 +484,7 @@ INFO is the current export plist."
                   "toplevel-attributes"
                   (or (plist-get info :slipshow-toplevel-attributes)
                       (and slide "{}")))
-                 (org-rlr-slipshow--fm-pair
+                 (org-rlr-slipshow--fm-assets
                   "theme" (or (plist-get info :slipshow-theme)
                               org-rlr-slipshow-theme))
                  (org-rlr-slipshow--fm-pair
@@ -465,11 +493,13 @@ INFO is the current export plist."
                  (org-rlr-slipshow--fm-pair
                   "math-mode" (or (plist-get info :slipshow-math-mode)
                                   org-rlr-slipshow-math-mode))
-                 (org-rlr-slipshow--fm-pair
+                 (org-rlr-slipshow--fm-assets
                   "math-link" (or (plist-get info :slipshow-math-link)
                                   org-rlr-slipshow-math-link))
-                 (org-rlr-slipshow--fm-pair "css" (plist-get info :slipshow-css))
-                 (org-rlr-slipshow--fm-pair "js" (plist-get info :slipshow-js))
+                 (org-rlr-slipshow--fm-assets
+                  "css" (plist-get info :slipshow-css))
+                 (org-rlr-slipshow--fm-assets
+                  "js" (plist-get info :slipshow-js))
                  (org-rlr-slipshow--fm-pair
                   "highlightjs-theme"
                   (plist-get info :slipshow-highlightjs-theme))

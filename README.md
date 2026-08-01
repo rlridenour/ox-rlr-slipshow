@@ -358,6 +358,37 @@ or set `org-rlr-slipshow-with-notes` to `nil`.
 Keys you leave unset are omitted rather than written out with Slipshow's own
 default, so the frontmatter stays as small as the deck needs.
 
+## Styling
+
+Put your rules in a stylesheet next to the deck and name it:
+
+```org
+#+SLIPSHOW_THEME: vanier
+#+SLIPSHOW_CSS: style.css
+```
+
+Slipshow loads `css` *after* the theme, so ordinary selectors override it
+without `!important`. Several stylesheets are allowed, on one line or on
+several `#+SLIPSHOW_CSS:` lines. Local files are inlined into the compiled
+HTML, which stays self-contained; only `http(s)://` values remain as links.
+
+Paths resolve against the *source file*, not the working directory, so a
+relative path works however the export was invoked. Paths in `theme`, `css`,
+`js` and `math-link` may begin with `~`, which this back-end expands — Slipshow
+does not, and would otherwise warn that the file is unreadable and then compile
+the deck without it.
+
+`#+SLIPSHOW_THEME:` also accepts a path, but a CSS file *replaces* the built-in
+theme rather than adding to it: you lose both the base rules and the embedded
+fonts. Prefer naming a built-in theme (`default`, `vanier`, `none`) and
+layering your own rules through `#+SLIPSHOW_CSS:`. For a house style shared
+across decks, point `org-rlr-slipshow-theme` at an absolute path, or keep the
+keywords in a `#+SETUPFILE:`.
+
+A missing stylesheet is only a warning, not an error, so a typo yields an
+unstyled deck that compiled "successfully" — worth a glance at the compile
+output the first time you wire one up.
+
 ## Math and tables
 
 Org LaTeX fragments are normalised to Slipshow's delimiters: `\(x\)` becomes

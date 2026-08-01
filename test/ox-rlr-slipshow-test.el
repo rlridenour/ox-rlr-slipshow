@@ -269,6 +269,54 @@ Injecting it is what #+begin_export html is for."
     (should-not (string-match-p "math-mode" out))))
 
 
+;;; Asset paths
+
+(ert-deftest ox-rlr-slipshow-asset-paths-expand-a-leading-tilde ()
+  "Slipshow does not expand `~': it warns the file is unreadable and
+then emits it as a remote link, so the deck compiles unstyled."
+  (let ((out (ox-rlr-slipshow-test--export
+              (concat "#+SLIPSHOW_THEME: ~/decks/mine.css\n"
+                      "#+SLIPSHOW_CSS: ~/decks/extra.css\n"
+                      "#+SLIPSHOW_JS: ~/decks/extra.js\n"
+                      "#+SLIPSHOW_MATH_LINK: ~/decks/katex\n\ntext\n")))
+        (home (expand-file-name "~")))
+    (should-not (string-match-p "~/decks" out))
+    (dolist (key '("theme" "css" "js" "math-link"))
+      (should (string-match-p (format "^%s: %s/decks/" key (regexp-quote home))
+                              out)))))
+
+(ert-deftest ox-rlr-slipshow-asset-paths-leave-everything-else-alone ()
+  "Relative paths resolve against the source file, and a built-in theme
+name is not a path at all, so neither may be expanded."
+  (let ((out (ox-rlr-slipshow-test--export
+              (concat "#+SLIPSHOW_THEME: vanier\n"
+                      "#+SLIPSHOW_CSS: style.css https://example.com/a.css\n"
+                      "\ntext\n"))))
+    (should (string-match-p "^theme: vanier$" out))
+    (should (string-match-p "^css: style\\.css https://example\\.com/a\\.css$"
+                            out))))
+
+(ert-deftest ox-rlr-slipshow-asset-paths-expand-each-of-several ()
+  "Slipshow splits `css' on spaces, so every entry needs expanding."
+  (let* ((home (expand-file-name "~"))
+         (out (ox-rlr-slipshow-test--export
+               "#+SLIPSHOW_CSS: ~/a.css b.css\n#+SLIPSHOW_CSS: ~/c.css\n\ntext\n")))
+    (should (string-match-p
+             (format "^css: %s/a\\.css b\\.css %s/c\\.css$"
+                     (regexp-quote home) (regexp-quote home))
+             out))))
+
+(ert-deftest ox-rlr-slipshow-theme-defcustom-is-expanded-too ()
+  "A house theme kept outside the deck's directory is the whole reason
+`org-rlr-slipshow-theme' takes a path."
+  (let* ((org-rlr-slipshow-theme "~/decks/house.css")
+         (out (ox-rlr-slipshow-test--export "text\n")))
+    (should (string-match-p (format "^theme: %s$"
+                                    (regexp-quote
+                                     (expand-file-name "~/decks/house.css")))
+                            out))))
+
+
 ;;; Speaker notes
 
 (defconst ox-rlr-slipshow-test--notes-slip
