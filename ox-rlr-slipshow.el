@@ -130,6 +130,25 @@ own rules in #+SLIPSHOW_CSS:, which Slipshow loads afterwards."
   :type '(choice (const :tag "Slipshow default" nil) string)
   :group 'org-export-rlr-slipshow)
 
+(defcustom org-rlr-slipshow-affiliation nil
+  "Affiliation shown on the title slip, or nil to omit the line.
+
+Org offers #+AUTHOR: and #+DATE: and nothing in between, so a department
+or institution has no slot of its own.  Set this to the one you present
+under and every deck picks it up; override per file with
+#+SLIPSHOW_AFFILIATION:."
+  :type '(choice (const :tag "No affiliation" nil) string)
+  :group 'org-export-rlr-slipshow)
+
+(defcustom org-rlr-slipshow-title-logo nil
+  "Path to an image placed on the title slip, or nil for none.
+
+Resolved by Slipshow relative to the exported file, so a path relative
+to the Org file works; a leading `~' is expanded.  Slipshow inlines the
+image as a data URI, so the compiled deck stays self-contained."
+  :type '(choice (const :tag "No logo" nil) file)
+  :group 'org-export-rlr-slipshow)
+
 (defcustom org-rlr-slipshow-dimension nil
   "Default presentation dimension, or nil to let Slipshow decide.
 Either \"WIDTHxHEIGHT\" such as \"1920x1080\", or a ratio such as
@@ -509,6 +528,21 @@ with `org-rlr-slipshow--expand-asset'."
         (concat "---\n" (mapconcat #'identity lines "\n") "\n---\n\n")
       "")))
 
+(defun org-rlr-slipshow--title-line (class text)
+  "Return TEXT as a paragraph carrying CLASS, or nil when TEXT is blank."
+  (when text
+    (format "\n%s%s\n" (org-rlr-slipshow--attr-line (concat "." class)) text)))
+
+(defun org-rlr-slipshow--title-logo (info)
+  "Return the title slip's logo image, or nil when there is none.
+
+Emitted with the attributes attached to the image rather than to the
+paragraph around it, so that a stylesheet can size it."
+  (let ((logo (org-rlr-slipshow--clean (plist-get info :slipshow-title-logo))))
+    (when logo
+      (format "\n![](%s){.title-logo}\n"
+              (org-rlr-slipshow--expand-asset logo)))))
+
 (defun org-rlr-slipshow--title-block (info)
   "Return an opening title slip for INFO, or an empty string."
   (let ((title (and (plist-get info :with-title)
@@ -518,12 +552,18 @@ with `org-rlr-slipshow--expand-asset'."
       (let* ((author (and (plist-get info :with-author)
                           (org-rlr-slipshow--clean
                            (org-export-data (plist-get info :author) info))))
+             (affiliation (org-rlr-slipshow--clean
+                           (org-export-data
+                            (plist-get info :slipshow-affiliation) info)))
              (date (and (plist-get info :with-date)
                         (org-rlr-slipshow--clean
                          (org-export-data (org-export-get-date info) info))))
              (body (concat "# " title "\n"
-                           (when author (format "\n%s\n" author))
-                           (when date (format "\n%s\n" date)))))
+                           (org-rlr-slipshow--title-line "author" author)
+                           (org-rlr-slipshow--title-line
+                            "affiliation" affiliation)
+                           (org-rlr-slipshow--title-line "date" date)
+                           (org-rlr-slipshow--title-logo info))))
         (pcase (org-rlr-slipshow--structure info)
           ('slip (concat "{slip .title-slip}\n"
                          org-rlr-slipshow--slip-separator "\n" body "\n"))
@@ -937,6 +977,10 @@ is synthesised for tables that have no header."
     (:slipshow-attributes "SLIPSHOW_ATTRIBUTES" nil nil t)
     (:slipshow-toplevel-attributes "SLIPSHOW_TOPLEVEL_ATTRIBUTES" nil nil t)
     (:slipshow-external-ids "SLIPSHOW_EXTERNAL_IDS" nil nil space)
+    (:slipshow-affiliation "SLIPSHOW_AFFILIATION" nil
+                           org-rlr-slipshow-affiliation parse)
+    (:slipshow-title-logo "SLIPSHOW_TITLE_LOGO" nil
+                          org-rlr-slipshow-title-logo t)
     (:slipshow-pause-lists nil "pause-lists" org-rlr-slipshow-pause-lists)
     (:slipshow-with-notes nil "notes" org-rlr-slipshow-with-notes))
   :translate-alist

@@ -269,6 +269,67 @@ Injecting it is what #+begin_export html is for."
     (should-not (string-match-p "math-mode" out))))
 
 
+;;; Title slip
+
+(defconst ox-rlr-slipshow-test--title
+  (concat "#+TITLE: Presentation Title\n#+AUTHOR: Dr. Ridenour\n"
+          "#+SLIPSHOW_AFFILIATION: Department of Philosophy\n"
+          "#+DATE: 2026-08-02\n#+SLIPSHOW_TITLE_LOGO: school.png\n\n* One\n\ntext\n"))
+
+(ert-deftest ox-rlr-slipshow-title-lines-are-classed ()
+  "Without classes a stylesheet can only reach the author and the date
+by :nth-of-type, which breaks as soon as a line is absent."
+  (let ((out (ox-rlr-slipshow-test--export ox-rlr-slipshow-test--title)))
+    (should (string-match-p "{\\.author}\nDr\\. Ridenour" out))
+    (should (string-match-p "{\\.affiliation}\nDepartment of Philosophy" out))
+    (should (string-match-p "{\\.date}\n2026-08-02" out))))
+
+(ert-deftest ox-rlr-slipshow-title-keeps-its-order ()
+  "The affiliation belongs between the author and the date."
+  (let* ((out (ox-rlr-slipshow-test--export ox-rlr-slipshow-test--title))
+         (author (string-match "{\\.author}" out))
+         (affiliation (string-match "{\\.affiliation}" out))
+         (date (string-match "{\\.date}" out)))
+    (should (< author affiliation date))))
+
+(ert-deftest ox-rlr-slipshow-title-logo-is-attached-to-the-image ()
+  "Attributes on the paragraph would size the paragraph, not the logo."
+  (let ((out (ox-rlr-slipshow-test--export ox-rlr-slipshow-test--title)))
+    (should (string-match-p "!\\[\\](school\\.png){\\.title-logo}" out))))
+
+(ert-deftest ox-rlr-slipshow-title-logo-expands-a-tilde ()
+  (let* ((org-rlr-slipshow-title-logo "~/decks/school.png")
+         (out (ox-rlr-slipshow-test--export "#+TITLE: T\n\ntext\n")))
+    (should (string-match-p
+             (concat "!\\[\\](" (regexp-quote (expand-file-name "~/decks/school.png"))
+                     "){\\.title-logo}")
+             out))))
+
+(ert-deftest ox-rlr-slipshow-title-omits-what-is-unset ()
+  "A deck with no affiliation and no logo must not gain empty lines."
+  (let ((out (ox-rlr-slipshow-test--export "#+TITLE: T\n#+AUTHOR: A\n\ntext\n")))
+    (should (string-match-p "{\\.author}" out))
+    (should-not (string-match-p "affiliation" out))
+    (should-not (string-match-p "title-logo" out))))
+
+(ert-deftest ox-rlr-slipshow-title-defcustoms-supply-defaults ()
+  "The affiliation and the logo are the same on every deck, so they are
+worth setting once."
+  (let* ((org-rlr-slipshow-affiliation "Department of Philosophy")
+         (org-rlr-slipshow-title-logo "school.png")
+         (out (ox-rlr-slipshow-test--export "#+TITLE: T\n\ntext\n")))
+    (should (string-match-p "{\\.affiliation}\nDepartment of Philosophy" out))
+    (should (string-match-p "!\\[\\](school\\.png){\\.title-logo}" out))))
+
+(ert-deftest ox-rlr-slipshow-title-is-suppressed-with-the-title ()
+  "#+OPTIONS: title:nil drops the slip, and everything hung off it."
+  (let ((out (ox-rlr-slipshow-test--export
+              (concat "#+OPTIONS: title:nil\n" ox-rlr-slipshow-test--title))))
+    (should-not (string-match-p "title-slip" out))
+    (should-not (string-match-p "title-logo" out))
+    (should-not (string-match-p "affiliation" out))))
+
+
 ;;; Asset paths
 
 (ert-deftest ox-rlr-slipshow-asset-paths-expand-a-leading-tilde ()

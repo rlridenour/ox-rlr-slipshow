@@ -338,6 +338,45 @@ and HTML. To drop them entirely:
 
 or set `org-rlr-slipshow-with-notes` to `nil`.
 
+## The title slip
+
+`#+TITLE:` opens the deck with a title slip. Org has `#+AUTHOR:` and `#+DATE:`
+and nothing in between, so an affiliation has a keyword of its own, and a logo
+can be placed alongside:
+
+```org
+#+TITLE: Presentation Title
+#+AUTHOR: Dr. Ridenour
+#+SLIPSHOW_AFFILIATION: Department of Philosophy
+#+DATE: 2026-08-02
+#+SLIPSHOW_TITLE_LOGO: school.png
+```
+
+Each line is emitted with a class — `.author`, `.affiliation`, `.date` — so a
+stylesheet can reach them by name rather than by `:nth-of-type`, which breaks
+as soon as one is absent. The logo carries `.title-logo` on the image itself
+rather than on the paragraph around it, so that width applies to the image.
+Anything unset is omitted entirely, and `#+OPTIONS: title:nil` drops the slip.
+
+Slipshow resolves the logo relative to the exported file and inlines it as a
+data URI, so a path relative to the Org file works and the compiled deck stays
+self-contained. `org-rlr-slipshow-affiliation` and
+`org-rlr-slipshow-title-logo` supply defaults, which is usually what you want:
+both are the same on every deck you give.
+
+`examples/title-slide.css` lays this out as two columns — text left, logo
+right, both centred — and `examples/helvetica.css` sets the face. Use them
+together:
+
+```org
+#+SLIPSHOW_DIMENSION: 16:9
+#+SLIPSHOW_CSS: helvetica.css title-slide.css
+```
+
+Both are examples to copy and adjust rather than a supported theme. The layout
+one assumes slip structure, the default; under `#+SLIPSHOW_STRUCTURE: slide`
+the title goes into the slide's own title bar instead of the body.
+
 ## Frontmatter
 
 | Org keyword | Frontmatter key |
@@ -352,6 +391,9 @@ or set `org-rlr-slipshow-with-notes` to `nil`.
 | `#+SLIPSHOW_ATTRIBUTES:` | `attributes` |
 | `#+SLIPSHOW_TOPLEVEL_ATTRIBUTES:` | `toplevel-attributes` |
 | `#+SLIPSHOW_EXTERNAL_IDS:` | `external-ids` |
+
+`#+SLIPSHOW_AFFILIATION:` and `#+SLIPSHOW_TITLE_LOGO:` are not frontmatter —
+they feed the title slip, described above.
 
 `org-rlr-slipshow-theme`, `org-rlr-slipshow-dimension`,
 `org-rlr-slipshow-math-mode` and `org-rlr-slipshow-math-link` supply defaults.
