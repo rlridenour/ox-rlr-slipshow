@@ -434,6 +434,20 @@ A missing stylesheet is only a warning, not an error, so a typo yields an
 unstyled deck that compiled "successfully" — worth a glance at the compile
 output the first time you wire one up.
 
+`css/` holds the sheets these decks use: `helvetica.css` sets the face,
+`title-slide.css` lays out the title slip, and `arg.css` renders a numbered
+list as a logical argument in standard form — premises, a rule, then the
+conclusion:
+
+```org
+#+ATTR_SLIPSHOW: .arg
+1. If it is raining, the streets are wet.
+2. It is raining.
+3. The streets are wet.
+```
+
+Each is a starting point to copy and adjust rather than a supported theme.
+
 ## Math and tables
 
 Org LaTeX fragments are normalised to Slipshow's delimiters: `\(x\)` becomes

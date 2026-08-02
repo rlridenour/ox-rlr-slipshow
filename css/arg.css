@@ -1,0 +1,52 @@
+/* Arguments in standard form: numbered premises, a rule, the conclusion.
+ *
+ *     #+SLIPSHOW_CSS: css/arg.css
+ *
+ *     #+ATTR_SLIPSHOW: .arg
+ *     1. If it is raining, the streets are wet.
+ *     2. It is raining.
+ *     3. The streets are wet.
+ *
+ * The last item of the list is the conclusion: it loses its number and
+ * gains the inference rule above it.  Attributes on an Org list reach
+ * Slipshow as a standalone {.arg} line, which wraps the list in a div, so
+ * the class sits on a parent of the <ol> rather than on the <ol> itself.
+ *
+ * The rule is a border above the conclusion rather than an underline on
+ * the last premise.  An underline stops where that premise's words stop,
+ * which reads as emphasis rather than as an inference line, and it cuts
+ * through descenders.
+ *
+ * Under #+ATTR_SLIPSHOW: .arg pause-children the rule appears with the
+ * last premise, one step before the conclusion: Slipshow pauses each
+ * item's contents, not the <li>, so anything hung off the conclusion
+ * renders early.  For the same reason a `therefore' sign cannot be added
+ * here as a ::before -- it would sit alone for a whole step.  Type it into
+ * the Org text instead, as `3. ∴ The streets are wet.', so that it is
+ * revealed along with the conclusion. */
+
+.arg > ol {
+  /* Shrink to the widest line, so the rule spans the argument and not the
+   * whole slip. */
+  width: max-content;
+  max-width: 100%;
+  margin: 0;
+  padding-left: 2.2em;
+}
+
+.arg > ol > li {
+  margin: 0;
+  padding: 0.1em 0;
+}
+
+/* Child combinators throughout: a premise with a nested sub-list must not
+ * give that sub-list a rule of its own. */
+.arg > ol > li:last-child {
+  list-style: none;
+  border-top: 0.06em solid currentColor;
+  /* Reach back under the numbers the conclusion no longer has. */
+  margin-left: -2.2em;
+  padding-left: 2.2em;
+  padding-top: 0.35em;
+  margin-top: 0.35em;
+}
