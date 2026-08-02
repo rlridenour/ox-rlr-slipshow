@@ -1,22 +1,25 @@
 ---
 theme: vanier
 dimension: 16:9
+css: ../css/arg.css
 ---
 
 {slip .title-slip}
 -----
 # Prime Numbers
 
+{.author}
 Randy Ridenour
 
+{.date}
 2026-07-30
 
 
-{slip #intro speaker-note=org-slipshow-note-209}
+{slip #intro speaker-note=org-slipshow-note-341}
 -----
 # What is a prime number?
 
-{#org-slipshow-note-209}
+{#org-slipshow-note-341}
 > Open by asking who remembers the sieve of Eratosthenes.
 >
 > Do **not** get drawn into the twin prime conjecture here &mdash; it comes up
@@ -56,6 +59,18 @@ $$\left( \sum_{k=1}^n a_k b_k \right)^2 < \Phi$$
 {speaker-note pause}
 > A second note in one section takes a step of its own, so the note can
 > change partway through. Give them a moment with the proof first.
+
+{slip}
+-----
+# An argument in standard form
+
+The last item of a `.arg` list is the conclusion: it loses its number and
+gains the inference rule above it.
+
+{.arg}
+1.  Every prime greater than two is odd.
+2.  Fifty-eight is even, and greater than two.
+3.  Fifty-eight is not prime.
 
 {slip}
 -----

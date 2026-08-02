@@ -4,6 +4,9 @@
 #+OPTIONS: toc:nil
 #+SLIPSHOW_THEME: vanier
 #+SLIPSHOW_DIMENSION: 16:9
+# Resolved relative to the exported demo.slp, so this reaches the
+# repository's own css/ directory.
+#+SLIPSHOW_CSS: ../css/arg.css
 
 * What is a prime number?
 :PROPERTIES:
@@ -55,6 +58,20 @@ Suppose there were finitely many. Multiply them all together and add one.
 A second note in one section takes a step of its own, so the note can
 change partway through. Give them a moment with the proof first.
 #+end_notes
+
+* An argument in standard form
+
+The last item of a =.arg= list is the conclusion: it loses its number and
+gains the inference rule above it.
+
+#+ATTR_SLIPSHOW: .arg
+1. Every prime greater than two is odd.
+2. Fifty-eight is even, and greater than two.
+3. Fifty-eight is not prime.
+
+# Adding pause-children here would reveal the premises one at a time, but
+# the rule would arrive with the last premise rather than with the
+# conclusion: Slipshow pauses each item's contents, not the item itself.
 
 * Code and quotations
 
