@@ -4,9 +4,9 @@
  *     #+AUTHOR: Dr. Ridenour
  *     #+SLIPSHOW_AFFILIATION: Department of Philosophy
  *     #+DATE: 2026-08-02
- *     #+SLIPSHOW_TITLE_LOGO: school.png
+ *     #+SLIPSHOW_TITLE_LOGO: logos/school.png
  *     #+SLIPSHOW_DIMENSION: 16:9
- *     #+SLIPSHOW_CSS: helvetica.css title-slide.css
+ *     #+SLIPSHOW_CSS: css/helvetica.css css/title-slide.css
  *
  * Only the title slip is touched, so this composes with helvetica.css or
  * any other layer and leaves the rest of the theme alone.

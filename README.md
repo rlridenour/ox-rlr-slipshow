@@ -364,18 +364,21 @@ self-contained. `org-rlr-slipshow-affiliation` and
 `org-rlr-slipshow-title-logo` supply defaults, which is usually what you want:
 both are the same on every deck you give.
 
-`examples/title-slide.css` lays this out as two columns — text left, logo
-right, both centred — and `examples/helvetica.css` sets the face. Use them
-together:
+`css/title-slide.css` lays this out as two columns — text left, logo right,
+both centred — and `css/helvetica.css` sets the face. `logos/` holds the
+images. Use them together:
 
 ```org
 #+SLIPSHOW_DIMENSION: 16:9
-#+SLIPSHOW_CSS: helvetica.css title-slide.css
+#+SLIPSHOW_TITLE_LOGO: logos/school.png
+#+SLIPSHOW_CSS: css/helvetica.css css/title-slide.css
 ```
 
-Both are examples to copy and adjust rather than a supported theme. The layout
-one assumes slip structure, the default; under `#+SLIPSHOW_STRUCTURE: slide`
-the title goes into the slide's own title bar instead of the body.
+Both paths are relative to the Org file, so adjust them to wherever the deck
+sits — or give absolute paths, which is what `org-rlr-slipshow-title-logo` is
+for. The layout sheet assumes slip structure, the default; under
+`#+SLIPSHOW_STRUCTURE: slide` the title goes into the slide's own title bar
+instead of the body.
 
 ## Frontmatter
 

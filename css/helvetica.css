@@ -3,7 +3,7 @@
  * Use it as a layer, not as a replacement:
  *
  *     #+SLIPSHOW_THEME: vanier
- *     #+SLIPSHOW_CSS: helvetica.css
+ *     #+SLIPSHOW_CSS: css/helvetica.css
  *
  * Slipshow loads `css' after `theme', so these rules win on order alone and
  * nothing else about vanier changes.  Naming this file as the theme instead
