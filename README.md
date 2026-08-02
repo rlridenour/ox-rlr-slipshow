@@ -338,6 +338,28 @@ and HTML. To drop them entirely:
 
 or set `org-rlr-slipshow-with-notes` to `nil`.
 
+### The speaker view
+
+Pressing `s` during a **compiled** deck opens the speaker window. It is not
+available from `slipshow serve`, so reach for `C-c C-e y o` rather than the
+watch loop when you want to rehearse with notes.
+
+Its default styling sets the whole panel to `2em`, which makes the notes hard
+to skim, and it spends two paragraphs explaining the mirror-view buttons.
+`css/speaker-view.js` fixes both:
+
+```org
+#+SLIPSHOW_JS: css/speaker-view.js
+```
+
+It is a script rather than a stylesheet because the speaker window is not part
+of the presentation: the engine opens a popup and writes the whole document
+into it, carrying its own inline `<style>`. Nothing named in
+`#+SLIPSHOW_CSS:` reaches it. The script hooks the popup as it opens and
+injects the rules, and it patches the *parent* window, because the popup is
+opened by the previewer that holds the presentation in an iframe rather than
+by the presentation itself.
+
 ## The title slip
 
 `#+TITLE:` opens the deck with a title slip. Org has `#+AUTHOR:` and `#+DATE:`
