@@ -10,6 +10,9 @@
 # Built distribution
 dist/
 
+# macOS directory metadata
+.DS_Store
+
 # Backup files
 *~
 
