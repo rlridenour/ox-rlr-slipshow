@@ -2,6 +2,7 @@
 theme: vanier
 dimension: 16:9
 css: ../css/arg.css
+js: ../css/speaker-view.js
 ---
 
 {slip .title-slip}
@@ -15,11 +16,11 @@ Randy Ridenour
 2026-07-30
 
 
-{slip #intro speaker-note=org-slipshow-note-341}
+{slip #intro speaker-note=org-slipshow-note-516}
 -----
 # What is a prime number?
 
-{#org-slipshow-note-341}
+{#org-slipshow-note-516}
 > Open by asking who remembers the sieve of Eratosthenes.
 >
 > Do **not** get drawn into the twin prime conjecture here &mdash; it comes up

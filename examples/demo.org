@@ -4,9 +4,12 @@
 #+OPTIONS: toc:nil
 #+SLIPSHOW_THEME: vanier
 #+SLIPSHOW_DIMENSION: 16:9
-# Resolved relative to the exported demo.slp, so this reaches the
+# Resolved relative to the exported demo.slp, so these reach the
 # repository's own css/ directory.
 #+SLIPSHOW_CSS: ../css/arg.css
+# Restyles the speaker window, which the notes below appear in.  Press s
+# to open it --- in the compiled deck, not under slipshow serve.
+#+SLIPSHOW_JS: ../css/speaker-view.js
 
 * What is a prime number?
 :PROPERTIES:
