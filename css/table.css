@@ -1,0 +1,86 @@
+/* Readable tables: room between the columns, a rule under the header, and
+ * the column alignment Org already exported.
+ *
+ *     #+SLIPSHOW_CSS: css/table.css
+ *
+ *     | Prime | Index |
+ *     |-------+-------|
+ *     |     2 |     1 |
+ *
+ * Neither Slipshow nor vanier says anything about tables, so without a
+ * sheet like this one they arrive at the browser's defaults: no cell
+ * padding at all, and 2px of `border-spacing' holding the columns apart.
+ * Figures in adjacent columns end up all but touching.
+ *
+ * Exported tables are GFM, and cmarkit renders them with no <thead> or
+ * <tbody> -- the header is just the first row, made of <th>.  Every
+ * selector below is written to that shape.  Note also that GFM requires a
+ * delimiter row, so the exporter synthesises one for a table with no
+ * hline: the first row is always a header, and the rule always appears. */
+
+table {
+  /* `collapse' zeroes `border-spacing', which leaves cell padding as the
+   * only source of column space -- one lever to tune instead of two -- and
+   * lets the header rule below be a single line rather than a doubled
+   * one. */
+  border-collapse: collapse;
+  margin: 0.6em 0;
+}
+
+th,
+td {
+  /* The horizontal figure is the one to reach for.  It is half the gap
+   * between two columns, since neighbouring cells each contribute their
+   * own padding to the space between them. */
+  padding: 0.25em 0.9em;
+}
+
+/* Trim the outer edges, so the table begins at the text margin rather than
+ * looking indented, and the header rule stops where the last column does. */
+tr > :first-child {
+  padding-left: 0;
+}
+
+tr > :last-child {
+  padding-right: 0;
+}
+
+th {
+  /* Browsers centre <th>, which fights the <td>s beneath it whenever the
+   * column carries no alignment of its own. */
+  text-align: left;
+  border-bottom: 0.06em solid currentColor;
+  padding-bottom: 0.35em;
+}
+
+/* Breathing room under the rule.  The second row is the first body row --
+ * see the note about the synthesised delimiter above. */
+tr:nth-child(2) > * {
+  padding-top: 0.4em;
+}
+
+/* cmarkit turns the GFM delimiter row into a class on every cell of the
+ * column, but nothing in Slipshow gives those classes a meaning.  Org
+ * right-aligns numeric columns on its own, so without these three rules
+ * that alignment is exported and then silently dropped. */
+th.left,
+td.left {
+  text-align: left;
+}
+
+th.center,
+td.center {
+  text-align: center;
+}
+
+th.right,
+td.right {
+  text-align: right;
+}
+
+/* Proportional digits differ in width, so a right-aligned column of
+ * numbers stays ragged down its left side even though its right edge is
+ * flush.  Tabular figures are of one width and stack into a block. */
+td.right {
+  font-variant-numeric: tabular-nums;
+}

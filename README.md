@@ -457,9 +457,9 @@ unstyled deck that compiled "successfully" — worth a glance at the compile
 output the first time you wire one up.
 
 `css/` holds the sheets these decks use: `helvetica.css` sets the face,
-`title-slide.css` lays out the title slip, and `arg.css` renders a numbered
-list as a logical argument in standard form — premises, a rule, then the
-conclusion:
+`title-slide.css` lays out the title slip, `table.css` gives tables room
+between their columns, and `arg.css` renders a numbered list as a logical
+argument in standard form — premises, a rule, then the conclusion:
 
 ```org
 #+ATTR_SLIPSHOW: .arg
@@ -477,7 +477,12 @@ Org LaTeX fragments are normalised to Slipshow's delimiters: `\(x\)` becomes
 Rendering is MathJax unless you ask for KaTeX with `#+SLIPSHOW_MATH_MODE:`.
 
 Org tables are emitted as GFM tables with alignment preserved; a delimiter row
-is synthesised for tables that have no header, since GFM requires one.
+is synthesised for tables that have no header, since GFM requires one. That
+alignment reaches the page as a `left`, `center`, or `right` class on each
+cell, but neither Slipshow nor its themes style tables at all — so by default
+the classes do nothing and the columns sit at the browser's 2px of
+`border-spacing`. `css/table.css` supplies the missing rules: column padding,
+a rule under the header, and the alignment those classes were meant to carry.
 
 ## Code blocks and diagrams
 
